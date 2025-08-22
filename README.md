@@ -9,26 +9,26 @@ Monorepo for:
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18+ recommended)
-- [pnpm](https://pnpm.io/) (`npm install -g pnpm`)
+- [Yarn](https://yarnpkg.com/) (`npm install -g yarn`)
 
 ### Install dependencies
 
 ```
-pnpm install
+yarn install
 ```
 
 ### Backend
 
 ```
 cd packages/backend
-pnpm start
+yarn start
 ```
 
 ### Frontend
 
 ```
 cd packages/frontend
-pnpm start
+yarn start
 ```
 
 ---
