@@ -1,1 +1,10 @@
-{"name": "mymonji-backend-service", "private": true, "workspaces": ["packages/*"]}
+{
+  "name": "mymonji-backend-service",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "eslint": "^7.32.0"
+  }
+}
