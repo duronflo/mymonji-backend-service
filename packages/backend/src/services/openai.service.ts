@@ -5,12 +5,14 @@ export class OpenAIService {
   private openai: OpenAI;
 
   constructor(apiKey?: string) {
-    if (!apiKey && !process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass it to constructor.');
+    const key = apiKey || process.env.OPENAI_API_KEY;
+    
+    if (!key || key === 'test_key_placeholder') {
+      console.warn('⚠️  No valid OpenAI API key found. API calls will fail. Set OPENAI_API_KEY environment variable.');
     }
     
     this.openai = new OpenAI({
-      apiKey: apiKey || process.env.OPENAI_API_KEY,
+      apiKey: key || 'placeholder-key',
     });
   }
 
