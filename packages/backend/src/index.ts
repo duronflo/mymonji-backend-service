@@ -1,14 +1,25 @@
+// Load environment variables FIRST - before any other imports
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 
 import { chatRoutes } from './routes/chat.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
 
-// Load environment variables
-dotenv.config();
+// Debug environment variable loading
+console.log('🔧 Environment variables loaded:');
+console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`   PORT: ${process.env.PORT || 'not set'}`);
+console.log(`   FRONTEND_URL: ${process.env.FRONTEND_URL || 'not set'}`);
+const apiKeyStatus = process.env.OPENAI_API_KEY 
+  ? `set (${process.env.OPENAI_API_KEY.substring(0, 7)}...${process.env.OPENAI_API_KEY.substring(process.env.OPENAI_API_KEY.length - 4)})` 
+  : 'not set';
+console.log(`   OPENAI_API_KEY: ${apiKeyStatus}`);
+console.log('');
 
 const app = express();
 const PORT = process.env.PORT || 3001;

@@ -4,8 +4,15 @@ import { SystemSpecification, UserMessage, OpenAIRequest, ApiResponse, OpenAIRes
 
 const router = Router();
 
-// Initialize OpenAI service
-const openAIService = new OpenAIService();
+// Initialize OpenAI service with error handling
+let openAIService: OpenAIService;
+try {
+  openAIService = new OpenAIService();
+  console.log('✅ OpenAI service initialized successfully');
+} catch (error) {
+  console.error('❌ Failed to initialize OpenAI service:', error instanceof Error ? error.message : 'Unknown error');
+  // Service will be undefined, and endpoints will return appropriate errors
+}
 
 /**
  * POST /api/chat/send-message
@@ -13,6 +20,14 @@ const openAIService = new OpenAIService();
  */
 router.post('/send-message', async (req: Request, res: Response<ApiResponse<OpenAIResponse>>) => {
   try {
+    // Check if OpenAI service is available
+    if (!openAIService) {
+      return res.status(503).json({
+        success: false,
+        error: 'OpenAI service is not available. Please check your API key configuration.',
+      });
+    }
+
     const { systemSpec, userMessage }: OpenAIRequest = req.body;
 
     // Validate input
@@ -71,6 +86,15 @@ router.post('/send-message', async (req: Request, res: Response<ApiResponse<Open
  */
 router.post('/validate-key', async (req: Request, res: Response<ApiResponse<boolean>>) => {
   try {
+    // Check if OpenAI service is available
+    if (!openAIService) {
+      return res.json({
+        success: true,
+        data: false,
+        message: 'OpenAI service is not available. Please check your API key configuration.',
+      });
+    }
+
     const isValid = await openAIService.validateApiKey();
     
     res.json({

@@ -7,12 +7,16 @@ export class OpenAIService {
   constructor(apiKey?: string) {
     const key = apiKey || process.env.OPENAI_API_KEY;
     
-    if (!key || key === 'test_key_placeholder') {
-      console.warn('⚠️  No valid OpenAI API key found. API calls will fail. Set OPENAI_API_KEY environment variable.');
+    if (!key || key === 'test_key_placeholder' || key === 'your_openai_api_key_here' || key.trim() === '') {
+      throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable with a valid API key.');
     }
     
+    // Log masked key for debugging (show first 7 chars and last 4 chars)
+    const maskedKey = key.length > 11 ? `${key.substring(0, 7)}...${key.substring(key.length - 4)}` : '***masked***';
+    console.log(`🔑 Using OpenAI API key: ${maskedKey}`);
+    
     this.openai = new OpenAI({
-      apiKey: key || 'placeholder-key',
+      apiKey: key,
     });
   }
 
