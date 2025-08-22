@@ -23,9 +23,11 @@ Monorepo for:
    Edit `.env` and add your OpenAI API key:
    ```
    OPENAI_API_KEY=your_openai_api_key_here
-   PORT=3002
+   PORT=3001
    NODE_ENV=development
    FRONTEND_URL=http://localhost:3000
+   RATE_LIMIT_WINDOW_MS=900000
+   RATE_LIMIT_MAX_REQUESTS=100
    ```
 
 2. **Frontend Configuration**
@@ -34,9 +36,11 @@ Monorepo for:
    cp .env.example .env
    ```
    
-   Edit `.env` to match your backend URL:
+   Edit `.env` to configure the backend API URL:
    ```
-   VITE_API_BASE_URL=http://localhost:3002
+   VITE_API_URL=http://localhost:3001
+   VITE_APP_NAME=MyMonji Frontend
+   VITE_APP_VERSION=1.0.0
    ```
 
 ### Install Dependencies
@@ -54,7 +58,7 @@ cd packages/backend
 yarn dev
 ```
 
-The backend server will start on `http://localhost:3002` (or the port specified in your `.env` file).
+The backend server will start on `http://localhost:3001` (or the port specified in your `.env` file).
 
 #### Frontend
 
@@ -248,8 +252,8 @@ All code uses TypeScript with strict mode enabled. Shared types between frontend
    - Check that the key is properly set in the `.env` file
 
 2. **Port Conflicts**
-   - Change the PORT in backend `.env` if 3002 is in use
-   - Update VITE_API_BASE_URL in frontend `.env` accordingly
+   - Change the PORT in backend `.env` if 3001 is in use
+   - Update VITE_API_URL in frontend `.env` accordingly
 
 3. **CORS Issues**
    - Ensure FRONTEND_URL in backend `.env` matches your frontend URL

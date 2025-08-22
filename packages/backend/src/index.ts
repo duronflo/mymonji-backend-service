@@ -4,8 +4,8 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 
-import { chatRoutes } from '@/routes/chat.routes';
-import { errorHandler, notFound } from '@/middleware/error.middleware';
+import { chatRoutes } from './routes/chat.routes';
+import { errorHandler, notFound } from './middleware/error.middleware';
 
 // Load environment variables
 dotenv.config();

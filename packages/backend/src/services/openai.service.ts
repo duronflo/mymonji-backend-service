@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { SystemSpecification, UserMessage, OpenAIMessage, OpenAIResponse } from '@/types';
+import { SystemSpecification, UserMessage, OpenAIMessage, OpenAIResponse } from '../types';
 
 export class OpenAIService {
   private openai: OpenAI;

@@ -4,7 +4,7 @@ import { SystemPanel } from './components/SystemPanel';
 import { MessageList } from './components/MessageList';
 import { MessageInput } from './components/MessageInput';
 import { ApiService } from './services/api.service';
-import { SystemSpecification, ChatMessage, UserMessage } from './types/index';
+import type { SystemSpecification, ChatMessage, UserMessage } from './types/index';
 
 function App() {
   // State for system specification

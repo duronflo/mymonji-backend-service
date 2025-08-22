@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { OpenAIService } from '@/services/openai.service';
-import { SystemSpecification, UserMessage, OpenAIRequest, ApiResponse, OpenAIResponse } from '@/types';
+import { OpenAIService } from '../services/openai.service';
+import { SystemSpecification, UserMessage, OpenAIRequest, ApiResponse, OpenAIResponse } from '../types';
 
 const router = Router();
 
