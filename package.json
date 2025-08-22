@@ -1,0 +1,1 @@
+{"name": "mymonji-backend-service", "private": true, "workspaces": ["packages/*"]}
