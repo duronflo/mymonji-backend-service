@@ -764,6 +764,10 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
+"@mymonji/shared@file:../shared", "@mymonji/shared@file:/home/runner/work/mymonji-backend-service/mymonji-backend-service/packages/shared":
+  version "1.0.0"
+  resolved "file:packages/shared"
+
 "@noble/hashes@^1.1.5":
   version "1.8.0"
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz"
