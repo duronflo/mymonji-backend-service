@@ -32,7 +32,7 @@ Background: ${spec.background}
 Personality: ${spec.personality}
 
 Rules:
-${spec.rules.map(rule => `- ${rule}`).join('\n')}
+${spec.rules.map((rule: string) => `- ${rule}`).join('\n')}
 
 Please respond according to this specification and maintain consistency throughout the conversation.
     `.trim();
