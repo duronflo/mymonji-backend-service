@@ -21,6 +21,9 @@ router.post('/user/:uid/recommendations', async (req: Request, res: Response) =>
     const { uid } = req.params;
     const requestBody: UserRecommendationsRequest = req.body || {};
 
+    const recommendationService = RecommendationService.getInstance();
+    const firebaseService = FirebaseService.getInstance();
+
     // Validate UID
     if (!uid || typeof uid !== 'string') {
       const response: ApiResponse<null> = {
