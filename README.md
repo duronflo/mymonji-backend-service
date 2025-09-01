@@ -28,6 +28,13 @@ Monorepo for:
    FRONTEND_URL=http://localhost:3000
    RATE_LIMIT_WINDOW_MS=900000
    RATE_LIMIT_MAX_REQUESTS=100
+   
+   # Firebase Configuration
+   FIREBASE_PROJECT_ID=your_firebase_project_id
+   FIREBASE_PRIVATE_KEY=your_firebase_private_key
+   FIREBASE_CLIENT_EMAIL=your_firebase_client_email
+   # Alternative: use service account key file path
+   FIREBASE_SERVICE_ACCOUNT_KEY_PATH=./path/to/serviceAccountKey.json
    ```
 
 2. **Frontend Configuration**
@@ -169,6 +176,49 @@ Validate OpenAI API key.
 ### GET `/api/chat/health`
 Health check endpoint.
 
+### Firebase Users API
+
+### GET `/api/users`
+Get all users from Firebase users2 collection with optional filtering and limiting.
+
+**Query Parameters:**
+- `limit` (optional): Maximum number of users to return
+- Any other field to filter by (e.g., `name=John`, `email=john@example.com`)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "string",
+      "name": "string", 
+      "email": "string",
+      "displayName": "string",
+      "photoURL": "string",
+      "createdAt": "Date",
+      "updatedAt": "Date"
+    }
+  ],
+  "message": "Retrieved X users successfully"
+}
+```
+
+### GET `/api/users/:id`
+Get a specific user by ID.
+
+### POST `/api/users`
+Create a new user in Firebase users2 collection.
+
+### PUT `/api/users/:id`
+Update an existing user.
+
+### DELETE `/api/users/:id`
+Delete a user by ID.
+
+### GET `/api/users/service/health`
+Health check endpoint for users service.
+
 ---
 
 ## Project Structure
@@ -208,6 +258,7 @@ Health check endpoint.
 - **Node.js** with **Express.js** - Web server framework
 - **TypeScript** - Type safety and modern JavaScript features
 - **OpenAI SDK** - Official OpenAI API integration
+- **Firebase Admin SDK** - Firebase Firestore database integration
 - **Jest** - Testing framework with coverage reporting
 - **CORS** - Cross-origin resource sharing
 - **Helmet** - Security middleware

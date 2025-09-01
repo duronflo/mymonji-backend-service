@@ -5,7 +5,12 @@ export {
   OpenAIMessage,
   OpenAIRequest,
   OpenAIResponse,
-  ApiResponse
+  ApiResponse,
+  User,
+  CreateUserRequest,
+  UpdateUserRequest,
+  UserQueryFilters,
+  PaginationParams
 } from '@mymonji/shared';
 
 // Import types for internal use

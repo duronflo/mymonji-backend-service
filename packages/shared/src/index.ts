@@ -42,3 +42,40 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+// Firebase User types
+export interface User {
+  id?: string;
+  email?: string;
+  name?: string;
+  displayName?: string;
+  photoURL?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  [key: string]: any; // Allow additional fields for flexibility
+}
+
+export interface CreateUserRequest {
+  email?: string;
+  name?: string;
+  displayName?: string;
+  photoURL?: string;
+  [key: string]: any; // Allow additional fields
+}
+
+export interface UpdateUserRequest {
+  email?: string;
+  name?: string;
+  displayName?: string;
+  photoURL?: string;
+  [key: string]: any; // Allow additional fields
+}
+
+export interface UserQueryFilters {
+  [key: string]: any;
+}
+
+export interface PaginationParams {
+  limit?: number;
+  startAfter?: string;
+}

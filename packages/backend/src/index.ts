@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 import { chatRoutes } from './routes/chat.routes';
+import { usersRoutes } from './routes/users.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
 
 // Debug environment variable loading
@@ -59,6 +60,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/chat', chatRoutes);
+app.use('/api/users', usersRoutes);
 
 // Error handling middleware
 app.use(notFound);
