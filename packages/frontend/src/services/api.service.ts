@@ -1,4 +1,13 @@
-import type { OpenAIRequest, OpenAIResponse, ApiResponse } from '../types/index';
+import type { 
+  OpenAIRequest, 
+  OpenAIResponse, 
+  ApiResponse,
+  UserRecommendationsRequest,
+  UserRecommendationsResponse,
+  BatchJobRequest,
+  BatchJobResponse,
+  BatchJobStatusResponse
+} from '../types/index';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -46,7 +55,26 @@ export class ApiService {
     });
   }
 
-  static async getHealth(): Promise<ApiResponse<{ status: string; timestamp: string }>> {
-    return this.makeRequest<{ status: string; timestamp: string }>('/api/health');
+  static async getHealth(): Promise<ApiResponse<{ status: string; uptime: number }>> {
+    return this.makeRequest<{ status: string; uptime: number }>('/health');
+  }
+
+  // Firebase endpoints
+  static async getUserRecommendations(uid: string, request?: UserRecommendationsRequest): Promise<ApiResponse<UserRecommendationsResponse>> {
+    return this.makeRequest<UserRecommendationsResponse>(`/user/${uid}/recommendations`, {
+      method: 'POST',
+      body: JSON.stringify(request || {}),
+    });
+  }
+
+  static async startBatchJob(request?: BatchJobRequest): Promise<ApiResponse<BatchJobResponse>> {
+    return this.makeRequest<BatchJobResponse>('/batch/run', {
+      method: 'POST',
+      body: JSON.stringify(request || {}),
+    });
+  }
+
+  static async getBatchJobStatus(jobId: string): Promise<ApiResponse<BatchJobStatusResponse>> {
+    return this.makeRequest<BatchJobStatusResponse>(`/batch/${jobId}/status`);
   }
 }
