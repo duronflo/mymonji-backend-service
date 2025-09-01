@@ -42,3 +42,36 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+// Firebase and Recommendation related types
+export interface Recommendation {
+  category: string;
+  advice: string;
+}
+
+export interface UserRecommendationsRequest {
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface UserRecommendationsResponse {
+  uid: string;
+  recommendations: Recommendation[];
+}
+
+export interface BatchJobRequest {
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface BatchJobResponse {
+  status: string;
+  jobId: string;
+}
+
+export interface BatchJobStatusResponse {
+  jobId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  processedUsers?: number;
+  durationSec?: number;
+}

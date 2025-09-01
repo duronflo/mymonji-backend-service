@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 import { chatRoutes } from './routes/chat.routes';
+import { firebaseRoutes } from './routes/firebase.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
 
 // Debug environment variable loading
@@ -48,17 +49,20 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
+// Health check endpoint - Updated format as per requirements
 app.get('/health', (req, res) => {
+  const startTime = process.hrtime.bigint();
+  const uptime = Math.floor(Number(process.hrtime.bigint() - startTime) / 1000000);
+  
   res.json({
-    success: true,
-    data: 'Server is running',
-    message: 'OK',
+    status: 'ok',
+    uptime: Math.floor(process.uptime())
   });
 });
 
 // API routes
 app.use('/api/chat', chatRoutes);
+app.use('/', firebaseRoutes); // Firebase routes at root level as specified
 
 // Error handling middleware
 app.use(notFound);
