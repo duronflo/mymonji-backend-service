@@ -2,22 +2,32 @@ import OpenAI from 'openai';
 import { SystemSpecification, UserMessage, OpenAIMessage, OpenAIResponse } from '../types';
 
 export class OpenAIService {
-  private openai: OpenAI;
+  private openai: OpenAI | null = null;
+  private apiKey: string | null = null;
 
   constructor(apiKey?: string) {
     const key = apiKey || process.env.OPENAI_API_KEY;
     
-    if (!key || key === 'test_key_placeholder' || key === 'your_openai_api_key_here' || key.trim() === '') {
-      throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable with a valid API key.');
+    if (key && key !== 'test_key_placeholder' && key !== 'your_openai_api_key_here' && key.trim() !== '') {
+      this.apiKey = key;
+      
+      // Log masked key for debugging (show first 7 chars and last 4 chars)
+      const maskedKey = key.length > 11 ? `${key.substring(0, 7)}...${key.substring(key.length - 4)}` : '***masked***';
+      console.log(`🔑 Using OpenAI API key: ${maskedKey}`);
+      
+      this.openai = new OpenAI({
+        apiKey: key,
+      });
+    } else {
+      console.log('⚠️ OpenAI service initialized without API key - requests will fail until key is provided');
     }
-    
-    // Log masked key for debugging (show first 7 chars and last 4 chars)
-    const maskedKey = key.length > 11 ? `${key.substring(0, 7)}...${key.substring(key.length - 4)}` : '***masked***';
-    console.log(`🔑 Using OpenAI API key: ${maskedKey}`);
-    
-    this.openai = new OpenAI({
-      apiKey: key,
-    });
+  }
+
+  /**
+   * Check if the service is properly configured
+   */
+  isConfigured(): boolean {
+    return this.openai !== null && this.apiKey !== null;
   }
 
   /**
@@ -51,6 +61,10 @@ Please respond according to this specification and maintain consistency througho
     userMessage: UserMessage,
     model: string = 'gpt-3.5-turbo'
   ): Promise<OpenAIResponse> {
+    if (!this.isConfigured() || !this.openai) {
+      throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable with a valid API key.');
+    }
+
     try {
       const messages: OpenAIMessage[] = [
         this.buildSystemMessage(systemSpec),
@@ -94,6 +108,10 @@ Please respond according to this specification and maintain consistency througho
    * Validates the OpenAI API key
    */
   async validateApiKey(): Promise<boolean> {
+    if (!this.isConfigured() || !this.openai) {
+      return false;
+    }
+    
     try {
       await this.openai.models.list();
       return true;

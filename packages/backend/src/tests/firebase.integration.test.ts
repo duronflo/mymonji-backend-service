@@ -97,6 +97,37 @@ describe('Firebase Routes Integration', () => {
       });
     });
 
+    it('should include debug information when requested', async () => {
+      const mockRecommendationsWithDebug = {
+        uid: validUid,
+        recommendations: [
+          { category: 'Food', advice: 'Reduziere Takeout um 20%' }
+        ],
+        debug: {
+          firebaseData: { userId: validUid, expenses: [{ amount: 50, category: 'food' }] },
+          openaiResponse: 'Based on the data, here are my recommendations...',
+          openaiUsage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+          processingTime: 1500
+        }
+      };
+
+      mockRecommendationService.generateUserRecommendations.mockResolvedValue(mockRecommendationsWithDebug);
+
+      const response = await request(app)
+        .post(`/user/${validUid}/recommendations`)
+        .send({ includeDebugInfo: true })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        success: true,
+        data: mockRecommendationsWithDebug,
+        message: 'Recommendations generated successfully'
+      });
+      expect(response.body.data.debug).toBeDefined();
+      expect(response.body.data.debug.firebaseData).toBeDefined();
+      expect(response.body.data.debug.openaiResponse).toBeDefined();
+    });
+
     it('should return 400 for invalid date format', async () => {
       const response = await request(app)
         .post(`/user/${validUid}/recommendations`)

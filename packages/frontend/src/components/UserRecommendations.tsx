@@ -59,6 +59,12 @@ export function UserRecommendations() {
       } else {
         setResult(`❌ Failed to get recommendations: ${response.error || 'Unknown error'}`);
       }
+
+      // Check for debug data even if request failed (for debugging purposes)
+      if (response.data && (response.data as UserRecommendationsResponse).debug) {
+        const data = response.data as UserRecommendationsResponse;
+        setDebugData(data.debug);
+      }
     } catch (error) {
       setResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {

@@ -77,6 +77,18 @@ router.post('/user/:uid/recommendations', async (req: Request, res: Response) =>
     console.error('Error in /user/:uid/recommendations:', error);
     
     const statusCode = error.message?.includes('not found') ? 404 : 500;
+    
+    // Check if debug information is available from the error
+    if (error.debugInfo && error.partialResponse) {
+      const response: ApiResponse<UserRecommendationsResponse> = {
+        success: false,
+        data: error.partialResponse,
+        error: error.message || 'Internal server error',
+        message: statusCode === 404 ? 'User not found' : 'Internal Server Error'
+      };
+      return res.status(statusCode).json(response);
+    }
+    
     const response: ApiResponse<null> = {
       success: false,
       error: error.message || 'Internal server error',

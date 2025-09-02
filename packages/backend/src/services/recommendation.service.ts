@@ -38,13 +38,21 @@ export class RecommendationService {
   ): Promise<UserRecommendationsResponse> {
     const startTime = Date.now();
     let debugInfo: any = {};
+    let userData: any = null;
     
     try {
-      // Get user data from Firebase
-      const userData = await this.firebaseService.getUserData(uid);
-      
-      if (options.includeDebugInfo) {
-        debugInfo.firebaseData = userData;
+      // Get user data from Firebase (capture this for debug even if later steps fail)
+      try {
+        userData = await this.firebaseService.getUserData(uid);
+        
+        if (options.includeDebugInfo) {
+          debugInfo.firebaseData = userData;
+        }
+      } catch (firebaseError) {
+        if (options.includeDebugInfo) {
+          debugInfo.firebaseError = firebaseError instanceof Error ? firebaseError.message : String(firebaseError);
+        }
+        throw firebaseError;
       }
       
       // Generate recommendations based on user data
@@ -68,6 +76,24 @@ export class RecommendationService {
       return response;
     } catch (error) {
       console.error(`Error generating recommendations for user ${uid}:`, error);
+      
+      // Include debug information in error response if requested
+      if (options.includeDebugInfo) {
+        debugInfo.processingTime = Date.now() - startTime;
+        debugInfo.error = error instanceof Error ? error.message : String(error);
+        
+        // Still return what we collected, even if incomplete
+        const errorResponse: UserRecommendationsResponse = {
+          uid,
+          recommendations: [],
+          debug: debugInfo
+        };
+        
+        // Attach debug info to the error so the route handler can include it in the response
+        (error as any).debugInfo = debugInfo;
+        (error as any).partialResponse = errorResponse;
+      }
+      
       throw error;
     }
   }
