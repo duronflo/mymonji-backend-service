@@ -5,6 +5,7 @@ import type { BatchJobRequest, BatchJobResponse, BatchJobStatusResponse } from '
 export function BatchProcessing() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [includeDebugInfo, setIncludeDebugInfo] = useState(false);
   const [jobId, setJobId] = useState('');
   const [isStartingJob, setIsStartingJob] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
@@ -20,6 +21,7 @@ export function BatchProcessing() {
       
       if (startDate) request.startDate = startDate;
       if (endDate) request.endDate = endDate;
+      if (includeDebugInfo) request.includeDebugInfo = true;
 
       const response = await ApiService.startBatchJob(request);
       
@@ -107,6 +109,17 @@ Status: ${data.status}`;
             onChange={(e) => setEndDate(e.target.value)}
             className="form-input"
           />
+        </div>
+        <div className="form-group">
+          <label>
+            <input
+              type="checkbox"
+              checked={includeDebugInfo}
+              onChange={(e) => setIncludeDebugInfo(e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            Include debug information (Firebase data & OpenAI responses)
+          </label>
         </div>
         
         <button 

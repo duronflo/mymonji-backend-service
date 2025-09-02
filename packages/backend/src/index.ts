@@ -51,9 +51,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint - Updated format as per requirements
 app.get('/health', (req, res) => {
-  const startTime = process.hrtime.bigint();
-  const uptime = Math.floor(Number(process.hrtime.bigint() - startTime) / 1000000);
-  
   res.json({
     status: 'ok',
     uptime: Math.floor(process.uptime())

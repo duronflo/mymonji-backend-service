@@ -52,16 +52,31 @@ export interface Recommendation {
 export interface UserRecommendationsRequest {
   startDate?: string;
   endDate?: string;
+  // Add debug flag to include Firebase data and OpenAI responses
+  includeDebugInfo?: boolean;
 }
 
 export interface UserRecommendationsResponse {
   uid: string;
   recommendations: Recommendation[];
+  // Debug information - optional fields for testing/debugging
+  debug?: {
+    firebaseData?: any;
+    openaiResponse?: string;
+    openaiUsage?: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+    processingTime?: number;
+  };
 }
 
 export interface BatchJobRequest {
   startDate?: string;
   endDate?: string;
+  // Add debug flag to include Firebase data and OpenAI responses
+  includeDebugInfo?: boolean;
 }
 
 export interface BatchJobResponse {

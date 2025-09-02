@@ -29,24 +29,43 @@ export class RecommendationService {
   /**
    * Generate recommendations for a specific user
    * @param uid - User ID
-   * @param options - Optional date range for recommendations
+   * @param options - Optional date range and debug flags for recommendations
    * @returns User recommendations
    */
   async generateUserRecommendations(
     uid: string, 
     options: UserRecommendationsRequest = {}
   ): Promise<UserRecommendationsResponse> {
+    const startTime = Date.now();
+    let debugInfo: any = {};
+    
     try {
       // Get user data from Firebase
       const userData = await this.firebaseService.getUserData(uid);
       
+      if (options.includeDebugInfo) {
+        debugInfo.firebaseData = userData;
+      }
+      
       // Generate recommendations based on user data
-      const recommendations = await this.analyzeUserDataAndGenerateRecommendations(userData, options);
+      const { recommendations, aiResponse, usage } = await this.analyzeUserDataAndGenerateRecommendations(userData, options);
 
-      return {
+      if (options.includeDebugInfo && aiResponse) {
+        debugInfo.openaiResponse = aiResponse;
+        debugInfo.openaiUsage = usage;
+        debugInfo.processingTime = Date.now() - startTime;
+      }
+
+      const response: UserRecommendationsResponse = {
         uid,
         recommendations
       };
+
+      if (options.includeDebugInfo) {
+        response.debug = debugInfo;
+      }
+
+      return response;
     } catch (error) {
       console.error(`Error generating recommendations for user ${uid}:`, error);
       throw error;
@@ -142,7 +161,7 @@ export class RecommendationService {
       for (const user of users) {
         try {
           // Generate recommendations for each user
-          await this.analyzeUserDataAndGenerateRecommendations(user.data, options);
+          const { recommendations } = await this.analyzeUserDataAndGenerateRecommendations(user.data, options);
           batchStatus.processedUsers++;
         } catch (error) {
           console.error(`Error processing user ${user.uid} in batch job ${jobId}:`, error);
@@ -165,12 +184,16 @@ export class RecommendationService {
    * Analyze user data and generate recommendations using AI
    * @param userData - User data from Firebase
    * @param options - Optional processing options
-   * @returns Array of recommendations
+   * @returns Object with recommendations and debug info
    */
   private async analyzeUserDataAndGenerateRecommendations(
     userData: any, 
     options: UserRecommendationsRequest
-  ): Promise<Recommendation[]> {
+  ): Promise<{ 
+    recommendations: Recommendation[], 
+    aiResponse?: string,
+    usage?: { promptTokens: number, completionTokens: number, totalTokens: number }
+  }> {
     try {
       // Create a prompt for OpenAI based on user data
       const analysisPrompt = this.createAnalysisPrompt(userData, options);
@@ -198,11 +221,19 @@ export class RecommendationService {
       const aiResponse = await this.openAIService.sendMessage(systemSpec, userMessage);
       
       // Parse AI response to extract recommendations
-      return this.parseRecommendationsFromAIResponse(aiResponse.content);
+      const recommendations = this.parseRecommendationsFromAIResponse(aiResponse.content);
+      
+      return {
+        recommendations,
+        aiResponse: options.includeDebugInfo ? aiResponse.content : undefined,
+        usage: options.includeDebugInfo ? aiResponse.usage : undefined
+      };
     } catch (error) {
       console.error('Error generating AI recommendations:', error);
       // Return fallback recommendations if AI fails
-      return this.getFallbackRecommendations(userData);
+      return {
+        recommendations: this.getFallbackRecommendations(userData)
+      };
     }
   }
 

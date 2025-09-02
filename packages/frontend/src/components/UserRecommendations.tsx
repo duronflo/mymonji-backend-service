@@ -6,8 +6,10 @@ export function UserRecommendations() {
   const [uid, setUid] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [includeDebugInfo, setIncludeDebugInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<string>('');
+  const [debugData, setDebugData] = useState<any>(null);
 
   const getRecommendations = async () => {
     if (!uid.trim()) {
@@ -17,12 +19,14 @@ export function UserRecommendations() {
 
     setIsLoading(true);
     setResult('');
+    setDebugData(null);
 
     try {
       const request: UserRecommendationsRequest = {};
       
       if (startDate) request.startDate = startDate;
       if (endDate) request.endDate = endDate;
+      if (includeDebugInfo) request.includeDebugInfo = true;
 
       const response = await ApiService.getUserRecommendations(uid, request);
       
@@ -37,8 +41,21 @@ export function UserRecommendations() {
         } else {
           resultText += '\nNo recommendations found for this user.';
         }
+
+        if (data.debug) {
+          resultText += `\n\nDebug Information:\n`;
+          resultText += `Processing Time: ${data.debug.processingTime}ms\n`;
+          if (data.debug.openaiUsage) {
+            resultText += `OpenAI Usage: ${data.debug.openaiUsage.totalTokens} tokens (${data.debug.openaiUsage.promptTokens} prompt + ${data.debug.openaiUsage.completionTokens} completion)\n`;
+          }
+        }
         
         setResult(resultText);
+        
+        // Store debug data for expandable sections
+        if (data.debug) {
+          setDebugData(data.debug);
+        }
       } else {
         setResult(`❌ Failed to get recommendations: ${response.error || 'Unknown error'}`);
       }
@@ -87,6 +104,18 @@ export function UserRecommendations() {
           className="form-input"
         />
       </div>
+
+      <div className="form-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={includeDebugInfo}
+            onChange={(e) => setIncludeDebugInfo(e.target.checked)}
+            style={{ marginRight: '8px' }}
+          />
+          Include debug information (Firebase data & OpenAI responses)
+        </label>
+      </div>
       
       <button 
         onClick={getRecommendations} 
@@ -99,6 +128,54 @@ export function UserRecommendations() {
       {result && (
         <div className="result">
           <pre>{result}</pre>
+        </div>
+      )}
+
+      {debugData && (
+        <div className="debug-section" style={{ marginTop: '20px' }}>
+          <h4>🔍 Debug Information</h4>
+          
+          {debugData.firebaseData && (
+            <details style={{ marginTop: '10px' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
+                📊 Firebase Data Structure
+              </summary>
+              <div style={{ 
+                background: '#f5f5f5', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                padding: '10px', 
+                marginTop: '10px',
+                maxHeight: '300px',
+                overflow: 'auto'
+              }}>
+                <pre style={{ margin: 0, fontSize: '12px' }}>
+                  {JSON.stringify(debugData.firebaseData, null, 2)}
+                </pre>
+              </div>
+            </details>
+          )}
+
+          {debugData.openaiResponse && (
+            <details style={{ marginTop: '10px' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
+                🤖 OpenAI Response
+              </summary>
+              <div style={{ 
+                background: '#f5f5f5', 
+                border: '1px solid #ddd', 
+                borderRadius: '4px', 
+                padding: '10px', 
+                marginTop: '10px',
+                maxHeight: '300px',
+                overflow: 'auto'
+              }}>
+                <pre style={{ margin: 0, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                  {debugData.openaiResponse}
+                </pre>
+              </div>
+            </details>
+          )}
         </div>
       )}
     </div>
