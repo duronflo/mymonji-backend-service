@@ -11,6 +11,7 @@ export function BatchProcessing() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [jobResult, setJobResult] = useState<string>('');
   const [statusResult, setStatusResult] = useState<string>('');
+  const [debugData, setDebugData] = useState<any>(null);
 
   const startBatchJob = async () => {
     setIsStartingJob(true);
@@ -52,6 +53,7 @@ You can now check the status using the job ID above.`;
 
     setIsCheckingStatus(true);
     setStatusResult('');
+    setDebugData(null);
 
     try {
       const response = await ApiService.getBatchJobStatus(jobId);
@@ -70,7 +72,23 @@ Status: ${data.status}`;
           resultText += `\nDuration: ${data.durationSec} seconds`;
         }
 
+        if (data.debug) {
+          resultText += `\n\nDebug Information:`;
+          resultText += `\nTotal Users: ${data.debug.totalUsers}`;
+          if (data.debug.sampleOpenaiUsage) {
+            resultText += `\nSample OpenAI Usage: ${data.debug.sampleOpenaiUsage.totalTokens} tokens (${data.debug.sampleOpenaiUsage.promptTokens} prompt + ${data.debug.sampleOpenaiUsage.completionTokens} completion)`;
+          }
+          if (data.debug.processingErrors && data.debug.processingErrors.length > 0) {
+            resultText += `\nProcessing Errors: ${data.debug.processingErrors.length}`;
+          }
+        }
+
         setStatusResult(resultText);
+        
+        // Store debug data for expandable sections
+        if (data.debug) {
+          setDebugData(data.debug);
+        }
       } else {
         setStatusResult(`❌ Failed to get job status: ${response.error || 'Unknown error'}`);
       }
@@ -163,6 +181,75 @@ Status: ${data.status}`;
         {statusResult && (
           <div className="result">
             <pre>{statusResult}</pre>
+          </div>
+        )}
+
+        {debugData && (
+          <div className="debug-section" style={{ marginTop: '20px' }}>
+            <h4>🔍 Batch Processing Debug Information</h4>
+            
+            {debugData.sampleFirebaseData && (
+              <details style={{ marginTop: '10px' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
+                  📊 Sample Firebase Data Structure
+                </summary>
+                <div style={{ 
+                  background: '#f5f5f5', 
+                  border: '1px solid #ddd', 
+                  borderRadius: '4px', 
+                  padding: '10px', 
+                  marginTop: '10px',
+                  maxHeight: '300px',
+                  overflow: 'auto'
+                }}>
+                  <pre style={{ margin: 0, fontSize: '12px' }}>
+                    {JSON.stringify(debugData.sampleFirebaseData, null, 2)}
+                  </pre>
+                </div>
+              </details>
+            )}
+
+            {debugData.sampleOpenaiResponse && (
+              <details style={{ marginTop: '10px' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
+                  🤖 Sample OpenAI Response
+                </summary>
+                <div style={{ 
+                  background: '#f5f5f5', 
+                  border: '1px solid #ddd', 
+                  borderRadius: '4px', 
+                  padding: '10px', 
+                  marginTop: '10px',
+                  maxHeight: '300px',
+                  overflow: 'auto'
+                }}>
+                  <pre style={{ margin: 0, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                    {debugData.sampleOpenaiResponse}
+                  </pre>
+                </div>
+              </details>
+            )}
+
+            {debugData.processingErrors && debugData.processingErrors.length > 0 && (
+              <details style={{ marginTop: '10px' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#cc0000' }}>
+                  ⚠️ Processing Errors ({debugData.processingErrors.length})
+                </summary>
+                <div style={{ 
+                  background: '#ffefef', 
+                  border: '1px solid #ffcccc', 
+                  borderRadius: '4px', 
+                  padding: '10px', 
+                  marginTop: '10px',
+                  maxHeight: '300px',
+                  overflow: 'auto'
+                }}>
+                  <pre style={{ margin: 0, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                    {debugData.processingErrors.join('\n')}
+                  </pre>
+                </div>
+              </details>
+            )}
           </div>
         )}
       </div>

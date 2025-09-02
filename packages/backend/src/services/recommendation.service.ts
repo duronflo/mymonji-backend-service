@@ -116,8 +116,15 @@ export class RecommendationService {
         status: 'pending',
         startTime: new Date(),
         processedUsers: 0,
-        totalUsers: users.length
+        totalUsers: users.length,
+        includeDebugInfo: options.includeDebugInfo || false
       };
+      
+      if (options.includeDebugInfo) {
+        batchStatus.debug = {
+          processingErrors: []
+        };
+      }
       
       this.batchJobs.set(jobId, batchStatus);
 
@@ -164,6 +171,14 @@ export class RecommendationService {
       response.durationSec = Math.floor((batchStatus.endTime.getTime() - batchStatus.startTime.getTime()) / 1000);
     }
 
+    // Include debug information if it was requested and is available
+    if (batchStatus.includeDebugInfo && batchStatus.debug) {
+      response.debug = {
+        ...batchStatus.debug,
+        totalUsers: batchStatus.totalUsers
+      };
+    }
+
     return response;
   }
 
@@ -187,10 +202,29 @@ export class RecommendationService {
       for (const user of users) {
         try {
           // Generate recommendations for each user
-          const { recommendations } = await this.analyzeUserDataAndGenerateRecommendations(user.data, options);
+          const result = await this.analyzeUserDataAndGenerateRecommendations(user.data, options);
           batchStatus.processedUsers++;
+
+          // Collect debug information from the first user for sample data
+          if (options.includeDebugInfo && batchStatus.debug && batchStatus.processedUsers === 1) {
+            // Store sample data from the first successfully processed user
+            batchStatus.debug.sampleFirebaseData = user.data;
+            if (result.aiResponse) {
+              batchStatus.debug.sampleOpenaiResponse = result.aiResponse;
+            }
+            if (result.usage) {
+              batchStatus.debug.sampleOpenaiUsage = result.usage;
+            }
+          }
         } catch (error) {
           console.error(`Error processing user ${user.uid} in batch job ${jobId}:`, error);
+          
+          // Collect error information if debug is enabled
+          if (options.includeDebugInfo && batchStatus.debug) {
+            const errorMsg = `User ${user.uid}: ${error instanceof Error ? error.message : String(error)}`;
+            batchStatus.debug.processingErrors!.push(errorMsg);
+          }
+          
           // Continue processing other users even if one fails
         }
       }

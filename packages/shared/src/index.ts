@@ -89,4 +89,16 @@ export interface BatchJobStatusResponse {
   status: 'pending' | 'running' | 'completed' | 'failed';
   processedUsers?: number;
   durationSec?: number;
+  // Debug information for batch processing
+  debug?: {
+    sampleFirebaseData?: any;
+    sampleOpenaiResponse?: string;
+    sampleOpenaiUsage?: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+    totalUsers?: number;
+    processingErrors?: string[];
+  };
 }

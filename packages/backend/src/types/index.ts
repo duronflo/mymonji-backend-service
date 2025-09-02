@@ -35,4 +35,16 @@ export interface BatchJobStatus {
   processedUsers: number;
   totalUsers: number;
   error?: string;
+  // Debug information for batch processing
+  includeDebugInfo?: boolean;
+  debug?: {
+    sampleFirebaseData?: any;
+    sampleOpenaiResponse?: string;
+    sampleOpenaiUsage?: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+    processingErrors?: string[];
+  };
 }
