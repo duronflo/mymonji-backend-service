@@ -38,7 +38,9 @@ export interface BatchJobStatus {
   // Debug information for batch processing
   includeDebugInfo?: boolean;
   debug?: {
-    sampleFirebaseData?: any;
+    sampleFirebaseData?: any; // Legacy field for backwards compatibility
+    sampleFirebaseUserData?: any;
+    sampleFirebaseExpenseData?: any;
     sampleOpenaiResponse?: string;
     sampleOpenaiUsage?: {
       promptTokens: number;

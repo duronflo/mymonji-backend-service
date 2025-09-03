@@ -61,7 +61,9 @@ export interface UserRecommendationsResponse {
   recommendations: Recommendation[];
   // Debug information - optional fields for testing/debugging
   debug?: {
-    firebaseData?: any;
+    firebaseData?: any; // Legacy field for backwards compatibility
+    firebaseUserData?: any;
+    firebaseExpenseData?: any;
     openaiResponse?: string;
     openaiUsage?: {
       promptTokens: number;
@@ -91,7 +93,9 @@ export interface BatchJobStatusResponse {
   durationSec?: number;
   // Debug information for batch processing
   debug?: {
-    sampleFirebaseData?: any;
+    sampleFirebaseData?: any; // Legacy field for backwards compatibility
+    sampleFirebaseUserData?: any;
+    sampleFirebaseExpenseData?: any;
     sampleOpenaiResponse?: string;
     sampleOpenaiUsage?: {
       promptTokens: number;

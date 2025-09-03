@@ -39,14 +39,20 @@ export class RecommendationService {
     const startTime = Date.now();
     let debugInfo: any = {};
     let userData: any = null;
+    let expenseData: any = null;
     
     try {
-      // Get user data from Firebase (capture this for debug even if later steps fail)
+      // Get user data and expense data from Firebase (capture this for debug even if later steps fail)
       try {
+        // Get basic user data
         userData = await this.firebaseService.getUserData(uid);
         
+        // Get expense data using the new getExpenseData function
+        expenseData = await this.firebaseService.getExpenseData(uid);
+        
         if (options.includeDebugInfo) {
-          debugInfo.firebaseData = userData;
+          debugInfo.firebaseUserData = userData;
+          debugInfo.firebaseExpenseData = expenseData;
         }
       } catch (firebaseError) {
         if (options.includeDebugInfo) {
@@ -55,8 +61,8 @@ export class RecommendationService {
         throw firebaseError;
       }
       
-      // Generate recommendations based on user data
-      const { recommendations, aiResponse, usage } = await this.analyzeUserDataAndGenerateRecommendations(userData, options);
+      // Generate recommendations based on expense data
+      const { recommendations, aiResponse, usage } = await this.analyzeUserDataAndGenerateRecommendations(expenseData, userData, options);
 
       if (options.includeDebugInfo && aiResponse) {
         debugInfo.openaiResponse = aiResponse;
@@ -201,14 +207,30 @@ export class RecommendationService {
     try {
       for (const user of users) {
         try {
-          // Generate recommendations for each user
-          const result = await this.analyzeUserDataAndGenerateRecommendations(user.data, options);
+          // Get expense data for each user for better recommendations
+          let expenseData = null;
+          try {
+            expenseData = await this.firebaseService.getExpenseData(user.uid);
+          } catch (expenseError) {
+            // If we can't get expense data, we'll use user metadata as fallback
+            console.warn(`Could not get expense data for user ${user.uid}, using user data as fallback:`, expenseError);
+          }
+
+          // Generate recommendations for each user using expense data if available, otherwise user data
+          const result = await this.analyzeUserDataAndGenerateRecommendations(
+            expenseData || user.data, 
+            user.data, 
+            options
+          );
           batchStatus.processedUsers++;
 
           // Collect debug information from the first user for sample data
           if (options.includeDebugInfo && batchStatus.debug && batchStatus.processedUsers === 1) {
             // Store sample data from the first successfully processed user
-            batchStatus.debug.sampleFirebaseData = user.data;
+            batchStatus.debug.sampleFirebaseUserData = user.data;
+            if (expenseData) {
+              batchStatus.debug.sampleFirebaseExpenseData = expenseData;
+            }
             if (result.aiResponse) {
               batchStatus.debug.sampleOpenaiResponse = result.aiResponse;
             }
@@ -242,12 +264,14 @@ export class RecommendationService {
 
   /**
    * Analyze user data and generate recommendations using AI
-   * @param userData - User data from Firebase
+   * @param expenseData - Expense data from Firebase
+   * @param userData - User metadata from Firebase
    * @param options - Optional processing options
    * @returns Object with recommendations and debug info
    */
   private async analyzeUserDataAndGenerateRecommendations(
-    userData: any, 
+    expenseData: any, 
+    userData: any,
     options: UserRecommendationsRequest
   ): Promise<{ 
     recommendations: Recommendation[], 
@@ -255,16 +279,18 @@ export class RecommendationService {
     usage?: { promptTokens: number, completionTokens: number, totalTokens: number }
   }> {
     try {
-      // Create a prompt for OpenAI based on user data
-      const analysisPrompt = this.createAnalysisPrompt(userData, options);
+      // Create a prompt for OpenAI based on expense data
+      const analysisPrompt = this.createAnalysisPrompt(expenseData, userData, options);
       
       // Use OpenAI to analyze data and generate recommendations
       const systemSpec = {
         role: 'Financial Advisor and Data Analyst',
-        background: 'You are an expert financial advisor who analyzes user spending and activity data to provide personalized recommendations.',
+        background: 'You are an expert financial advisor who analyzes user spending and expense data to provide personalized recommendations.',
         rules: [
-          'Analyze the provided user data carefully',
+          'Analyze the provided expense data carefully',
           'Identify spending patterns and areas for improvement',
+          'Look at spending categories, amounts, and frequency',
+          'Consider the emotional impact of purchases (emotion field)',
           'Provide practical, actionable advice',
           'Focus on the most impactful recommendations',
           'Keep recommendations concise and clear',
@@ -292,36 +318,64 @@ export class RecommendationService {
       console.error('Error generating AI recommendations:', error);
       // Return fallback recommendations if AI fails
       return {
-        recommendations: this.getFallbackRecommendations(userData)
+        recommendations: this.getFallbackRecommendations(expenseData)
       };
     }
   }
 
   /**
-   * Create analysis prompt for OpenAI based on user data
-   * @param userData - User data
+   * Create analysis prompt for OpenAI based on expense data
+   * @param expenseData - Expense data array
+   * @param userData - User metadata 
    * @param options - Optional date range
    * @returns Analysis prompt string
    */
-  private createAnalysisPrompt(userData: any, options: UserRecommendationsRequest): string {
+  private createAnalysisPrompt(expenseData: any, userData: any, options: UserRecommendationsRequest): string {
     const dateRange = options.startDate && options.endDate 
       ? `for the period from ${options.startDate} to ${options.endDate}` 
       : '';
 
-    return `Analyze the following user data ${dateRange} and provide 2-3 specific financial recommendations:
+    // Calculate some basic stats from expense data for context
+    let expenseSummary = '';
+    if (Array.isArray(expenseData) && expenseData.length > 0) {
+      const totalAmount = expenseData.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+      const categories = [...new Set(expenseData.map(e => e.category).filter(Boolean))];
+      const avgEmotion = expenseData.reduce((sum, expense) => sum + (expense.emotion || 0), 0) / expenseData.length;
+      
+      expenseSummary = `
+Expense Summary:
+- Total expenses: ${totalAmount} ${expenseData[0]?.currencyCode || ''}
+- Number of transactions: ${expenseData.length}
+- Categories: ${categories.join(', ')}
+- Average emotional impact: ${avgEmotion.toFixed(1)}/5
+`;
+    }
 
-User Data:
+    return `Analyze the following user expense data ${dateRange} and provide 2-3 specific financial recommendations:
+
+${expenseSummary}
+
+User Profile:
 ${JSON.stringify(userData, null, 2)}
 
-Please provide recommendations in the following JSON format:
+Detailed Expense Data:
+${JSON.stringify(expenseData, null, 2)}
+
+Please analyze:
+1. Spending patterns by category
+2. High-emotion purchases that might indicate impulse buying
+3. Frequency and amounts of transactions
+4. Potential areas for cost reduction
+
+Provide recommendations in the following JSON format:
 [
   {
     "category": "Category Name",
-    "advice": "Specific actionable advice"
+    "advice": "Specific actionable advice based on the expense analysis"
   }
 ]
 
-Focus on practical, achievable recommendations that will have the most positive impact on the user's financial situation.`;
+Focus on practical, achievable recommendations that will have the most positive impact on the user's financial situation based on their actual spending patterns.`;
   }
 
   /**
@@ -356,11 +410,11 @@ Focus on practical, achievable recommendations that will have the most positive 
 
   /**
    * Get fallback recommendations when AI is not available
-   * @param userData - User data
+   * @param expenseData - Expense data
    * @returns Array of fallback recommendations
    */
-  private getFallbackRecommendations(userData: any): Recommendation[] {
-    return [
+  private getFallbackRecommendations(expenseData: any): Recommendation[] {
+    const fallbackRecs = [
       {
         category: 'Budgeting',
         advice: 'Review your monthly expenses and create a budget to track spending patterns.'
@@ -368,11 +422,34 @@ Focus on practical, achievable recommendations that will have the most positive 
       {
         category: 'Savings',
         advice: 'Consider setting aside 10-15% of your income for emergency savings.'
-      },
-      {
-        category: 'Food',
-        advice: 'Reduce takeout expenses by planning meals and cooking more at home.'
       }
     ];
+
+    // Add expense-specific recommendations if we have data
+    if (Array.isArray(expenseData) && expenseData.length > 0) {
+      const categories = [...new Set(expenseData.map(e => e.category).filter(Boolean))];
+      const highEmotionExpenses = expenseData.filter(e => (e.emotion || 0) > 3);
+      
+      if (categories.includes('food') || categories.includes('Food') || categories.includes('dining')) {
+        fallbackRecs.push({
+          category: 'Food & Dining',
+          advice: 'Reduce takeout expenses by planning meals and cooking more at home.'
+        });
+      }
+      
+      if (highEmotionExpenses.length > 0) {
+        fallbackRecs.push({
+          category: 'Emotional Spending',
+          advice: 'Consider implementing a 24-hour waiting period before making high-emotion purchases to avoid impulse buying.'
+        });
+      }
+    } else {
+      fallbackRecs.push({
+        category: 'Food',
+        advice: 'Reduce takeout expenses by planning meals and cooking more at home.'
+      });
+    }
+
+    return fallbackRecs;
   }
 }

@@ -188,10 +188,86 @@ Status: ${data.status}`;
           <div className="debug-section" style={{ marginTop: '20px' }}>
             <h4>🔍 Batch Processing Debug Information</h4>
             
-            {debugData.sampleFirebaseData && (
+            {debugData.sampleFirebaseUserData && (
               <details style={{ marginTop: '10px' }}>
                 <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
-                  📊 Sample Firebase Data Structure
+                  👤 Sample Firebase User Data
+                </summary>
+                <div style={{ 
+                  background: '#f5f5f5', 
+                  border: '1px solid #ddd', 
+                  borderRadius: '4px', 
+                  padding: '10px', 
+                  marginTop: '10px',
+                  maxHeight: '300px',
+                  overflow: 'auto'
+                }}>
+                  <pre style={{ margin: 0, fontSize: '12px' }}>
+                    {JSON.stringify(debugData.sampleFirebaseUserData, null, 2)}
+                  </pre>
+                </div>
+              </details>
+            )}
+
+            {debugData.sampleFirebaseExpenseData && (
+              <details style={{ marginTop: '10px' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
+                  💳 Sample Firebase Expense Data ({Array.isArray(debugData.sampleFirebaseExpenseData) ? debugData.sampleFirebaseExpenseData.length : 0} expenses)
+                </summary>
+                <div style={{ 
+                  background: '#f5f5f5', 
+                  border: '1px solid #ddd', 
+                  borderRadius: '4px', 
+                  padding: '10px', 
+                  marginTop: '10px',
+                  maxHeight: '400px',
+                  overflow: 'auto'
+                }}>
+                  {Array.isArray(debugData.sampleFirebaseExpenseData) ? (
+                    <div>
+                      {debugData.sampleFirebaseExpenseData.slice(0, 3).map((expense: any, index: number) => (
+                        <details key={index} style={{ marginBottom: '10px', border: '1px solid #ccc', borderRadius: '4px' }}>
+                          <summary style={{ 
+                            cursor: 'pointer', 
+                            padding: '8px', 
+                            backgroundColor: '#ffffff',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            fontWeight: 'bold'
+                          }}>
+                            Expense #{index + 1}: {expense.name || 'Unnamed'} - {expense.amount} {expense.currencyCode || ''} ({expense.category || 'No category'})
+                          </summary>
+                          <div style={{ 
+                            padding: '10px', 
+                            backgroundColor: '#fafafa',
+                            fontSize: '12px'
+                          }}>
+                            <pre style={{ margin: 0 }}>
+                              {JSON.stringify(expense, null, 2)}
+                            </pre>
+                          </div>
+                        </details>
+                      ))}
+                      {debugData.sampleFirebaseExpenseData.length > 3 && (
+                        <div style={{ textAlign: 'center', fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
+                          ... and {debugData.sampleFirebaseExpenseData.length - 3} more expenses
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <pre style={{ margin: 0, fontSize: '12px' }}>
+                      {JSON.stringify(debugData.sampleFirebaseExpenseData, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              </details>
+            )}
+
+            {/* Legacy support for old sampleFirebaseData field */}
+            {debugData.sampleFirebaseData && !debugData.sampleFirebaseUserData && (
+              <details style={{ marginTop: '10px' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
+                  📊 Sample Firebase Data Structure (Legacy)
                 </summary>
                 <div style={{ 
                   background: '#f5f5f5', 
