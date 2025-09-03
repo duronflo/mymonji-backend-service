@@ -67,67 +67,116 @@ export class FirebaseService {
   /**
    * Get user data from Firebase
    * @param uid - User ID
-   * @returns User data from Firestore
+   * @returns Array of expenses
    */
-  async getUserData(uid: string): Promise<any> {
+  async getExpenseData(uid: string): Promise<any> {
     try {
       this.initializeFirebase();
       if (!this.db) throw new Error('Firestore not initialized');
 
-      const userDoc = await this.db.collection('users2').doc(uid).get();
-      
-      if (!userDoc.exists) {
-        throw new Error(`User with UID ${uid} not found`);
+
+      const expensesSnapshot = await this.db.collection('users2').doc(uid).collection('expenses').get();
+      const expenses: Array<{
+        amount: number;
+        category: string,
+        currencyCode: string,
+        date: Date,
+        emotion: number,
+        name: string
+      }> = [];
+
+      expensesSnapshot.forEach(doc => {
+        expenses.push({
+          amount: doc.data().amount,
+          category: doc.data().category,
+          currencyCode: doc.data().currencyCode,
+          date: doc.data().date,
+          emotion: doc.data().emotion,
+          name: doc.data().name
+        });
+        console.log(doc)
+      });
+
+      if (expenses.length === 0) {
+        throw new Error(`No expenses found for user with UID ${uid}`);
       }
 
-      return userDoc.data();
+      return expenses;
     } catch (error) {
-      console.error(`Error fetching user data for UID ${uid}:`, error);
+      console.error(`Error fetching expense data for UID ${uid}:`, error);
       throw error;
     }
+  }
+
+
+
+
+  /**
+   * Get user data from Firebase
+   * @param uid - User ID
+   * @returns User data from Firestore
+   */
+  async getUserData(uid: string): Promise < any > {
+  try {
+    this.initializeFirebase();
+    if(!this.db) throw new Error('Firestore not initialized');
+
+    const userDoc = await this.db.collection('users2').doc(uid).get();
+
+    console.log(userDoc)
+
+      if(!userDoc.exists) {
+  throw new Error(`User with UID ${uid} not found`);
+}
+
+return userDoc.data();
+    } catch (error) {
+  console.error(`Error fetching user data for UID ${uid}:`, error);
+  throw error;
+}
   }
 
   /**
    * Get all users from Firebase
    * @returns Array of all users
    */
-  async getAllUsers(): Promise<Array<{ uid: string; data: any }>> {
-    try {
-      this.initializeFirebase();
-      if (!this.db) throw new Error('Firestore not initialized');
+  async getAllUsers(): Promise < Array < { uid: string; data: any } >> {
+  try {
+    this.initializeFirebase();
+    if(!this.db) throw new Error('Firestore not initialized');
 
-      const usersSnapshot = await this.db.collection('users2').get();
-      const users: Array<{ uid: string; data: any }> = [];
+    const usersSnapshot = await this.db.collection('users2').get();
+    const users: Array<{ uid: string; data: any }> =[];
 
-      usersSnapshot.forEach(doc => {
-        users.push({
-          uid: doc.id,
-          data: doc.data()
-        });
-      });
+  usersSnapshot.forEach(doc => {
+    users.push({
+      uid: doc.id,
+      data: doc.data()
+    });
+  });
 
-      return users;
-    } catch (error) {
-      console.error('Error fetching all users:', error);
-      throw error;
-    }
+  return users;
+} catch (error) {
+  console.error('Error fetching all users:', error);
+  throw error;
+}
   }
 
-  /**
-   * Check if Firebase is properly configured
-   * @returns boolean indicating if Firebase is ready
-   */
-  isConfigured(): boolean {
-    try {
-      // Check if required environment variables are present
-      if (!process.env.FIREBASE_PROJECT_ID) {
-        return false;
-      }
-      
-      this.initializeFirebase();
-      return this.initialized && !!this.db;
-    } catch {
+/**
+ * Check if Firebase is properly configured
+ * @returns boolean indicating if Firebase is ready
+ */
+isConfigured(): boolean {
+  try {
+    // Check if required environment variables are present
+    if (!process.env.FIREBASE_PROJECT_ID) {
       return false;
     }
+
+    this.initializeFirebase();
+    return this.initialized && !!this.db;
+  } catch {
+    return false;
   }
+}
 }
