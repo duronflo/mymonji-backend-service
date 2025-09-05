@@ -24,7 +24,7 @@ export const SystemPanel: React.FC<SystemPanelProps> = ({
   };
 
   const removeRule = (index: number) => {
-    const newRules = systemSpec.rules.filter((_, i) => i !== index);
+    const newRules = systemSpec.rules.filter((_: string, i: number) => i !== index);
     onSystemSpecChange({ ...systemSpec, rules: newRules });
   };
 
@@ -68,7 +68,7 @@ export const SystemPanel: React.FC<SystemPanelProps> = ({
       <div className="field-group">
         <label>Rules & Guidelines</label>
         <div className="rules-list">
-          {systemSpec.rules.map((rule, index) => (
+          {systemSpec.rules.map((rule: string, index: number) => (
             <div key={index} className="rule-item">
               <input
                 type="text"
