@@ -89,11 +89,34 @@ router.post('/user/:uid/recommendations', async (req: Request, res: Response) =>
       return res.status(statusCode).json(response);
     }
     
+    // Enhanced error response with more details
+    const errorMessage = requestBody.includeDebugInfo 
+      ? `${error.message || 'Internal server error'} (${error.constructor?.name || 'Error'})` 
+      : error.message || 'Internal server error';
+    
     const response: ApiResponse<null> = {
       success: false,
-      error: error.message || 'Internal server error',
+      error: errorMessage,
       message: statusCode === 404 ? 'User not found' : 'Internal Server Error'
     };
+    
+    // Add debug information if requested
+    if (requestBody.includeDebugInfo) {
+      (response as any).debug = {
+        errorDetails: {
+          message: error.message,
+          type: error.constructor?.name || 'Error',
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        },
+        requestParameters: {
+          uid: uid,
+          startDate: requestBody.startDate,
+          endDate: requestBody.endDate,
+          includeDebugInfo: requestBody.includeDebugInfo
+        }
+      };
+    }
     
     res.status(statusCode).json(response);
   }

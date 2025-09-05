@@ -115,14 +115,23 @@ export class FirebaseService {
         });
       });
 
+      // Return empty array instead of throwing error when no expenses found
+      // This is a normal situation for new users or specific date ranges
       if (expenses.length === 0) {
         const dateInfo = startDate || endDate ? ` between ${startDate || 'start'} and ${endDate || 'end'}` : '';
-        throw new Error(`No expenses found for user with UID ${uid}${dateInfo}`);
+        console.log(`No expenses found for user with UID ${uid}${dateInfo} - returning empty array`);
       }
 
       return expenses;
     } catch (error) {
-      console.error(`Error fetching expense data for UID ${uid}:`, error);
+      const errorMessage = `Error fetching expense data for UID ${uid}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMessage);
+      console.error('Full error details:', error);
+      
+      // Re-throw with more context
+      if (error instanceof Error) {
+        error.message = errorMessage;
+      }
       throw error;
     }
   }
@@ -150,9 +159,16 @@ export class FirebaseService {
 
 return userDoc.data();
     } catch (error) {
-  console.error(`Error fetching user data for UID ${uid}:`, error);
-  throw error;
-}
+      const errorMessage = `Error fetching user data for UID ${uid}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMessage);
+      console.error('Full error details:', error);
+      
+      // Re-throw with more context
+      if (error instanceof Error) {
+        error.message = errorMessage;
+      }
+      throw error;
+    }
   }
 
   /**

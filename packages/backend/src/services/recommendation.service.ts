@@ -53,10 +53,15 @@ export class RecommendationService {
         if (options.includeDebugInfo) {
           debugInfo.firebaseUserData = userData;
           debugInfo.firebaseExpenseData = expenseData;
+          debugInfo.expenseCount = Array.isArray(expenseData) ? expenseData.length : 0;
+          debugInfo.dateRange = options.startDate && options.endDate ? 
+            `${options.startDate} to ${options.endDate}` : 'No date filter applied';
         }
       } catch (firebaseError) {
+        console.error('Firebase error details:', firebaseError);
         if (options.includeDebugInfo) {
           debugInfo.firebaseError = firebaseError instanceof Error ? firebaseError.message : String(firebaseError);
+          debugInfo.firebaseErrorStack = firebaseError instanceof Error ? firebaseError.stack : undefined;
         }
         throw firebaseError;
       }
@@ -87,12 +92,21 @@ export class RecommendationService {
       // Include debug information in error response if requested
       if (options.includeDebugInfo) {
         debugInfo.processingTime = Date.now() - startTime;
-        debugInfo.error = error instanceof Error ? error.message : String(error);
+        debugInfo.errorMessage = error instanceof Error ? error.message : String(error);
+        debugInfo.errorStack = error instanceof Error ? error.stack : undefined;
+        debugInfo.errorType = error instanceof Error ? error.constructor.name : 'Unknown';
+        
+        // Add context about what we were able to collect before the error
+        debugInfo.dataCollectionStatus = {
+          userDataCollected: !!userData,
+          expenseDataCollected: !!expenseData,
+          expenseCount: Array.isArray(expenseData) ? expenseData.length : 0
+        };
         
         // Still return what we collected, even if incomplete
         const errorResponse: UserRecommendationsResponse = {
           uid,
-          recommendations: [],
+          recommendations: this.getFallbackRecommendations(expenseData || []),
           debug: debugInfo
         };
         
@@ -284,6 +298,14 @@ export class RecommendationService {
     openaiInput?: any
   }> {
     try {
+      // Handle case where we have no expense data
+      if (!expenseData || (Array.isArray(expenseData) && expenseData.length === 0)) {
+        console.log('No expense data available, generating fallback recommendations');
+        return {
+          recommendations: this.getFallbackRecommendations([])
+        };
+      }
+
       // Create a prompt for OpenAI based on expense data
       const analysisPrompt = this.createAnalysisPrompt(expenseData, userData, options);
       
@@ -337,7 +359,7 @@ export class RecommendationService {
       console.error('Error generating AI recommendations:', error);
       // Return fallback recommendations if AI fails
       return {
-        recommendations: this.getFallbackRecommendations(expenseData)
+        recommendations: this.getFallbackRecommendations(expenseData || [])
       };
     }
   }
@@ -368,9 +390,19 @@ Expense Summary:
 - Categories: ${categories.join(', ')}
 - Average emotional impact: ${avgEmotion.toFixed(1)}/5
 `;
+    } else {
+      expenseSummary = `
+Expense Summary:
+- No expense data available ${dateRange}
+- This user may be new or have no transactions in the specified period
+`;
     }
 
-    return `Analyze the following user expense data ${dateRange} and provide 2-3 specific financial recommendations:
+    const expenseDataDisplay = Array.isArray(expenseData) && expenseData.length > 0 
+      ? JSON.stringify(expenseData, null, 2)
+      : 'No expense data available';
+
+    return `Analyze the following user data ${dateRange} and provide 2-3 specific financial recommendations:
 
 ${expenseSummary}
 
@@ -378,23 +410,27 @@ User Profile:
 ${JSON.stringify(userData, null, 2)}
 
 Detailed Expense Data:
-${JSON.stringify(expenseData, null, 2)}
+${expenseDataDisplay}
 
 Please analyze:
-1. Spending patterns by category
-2. High-emotion purchases that might indicate impulse buying
-3. Frequency and amounts of transactions
-4. Potential areas for cost reduction
+1. Available user profile information
+2. Spending patterns by category (if expense data is available)
+3. High-emotion purchases that might indicate impulse buying (if available)
+4. Frequency and amounts of transactions (if available)
+5. General financial health recommendations based on available data
 
 Provide recommendations in the following JSON format:
 [
   {
     "category": "Category Name",
-    "advice": "Specific actionable advice based on the expense analysis"
+    "advice": "Specific actionable advice based on available data"
   }
 ]
 
-Focus on practical, achievable recommendations that will have the most positive impact on the user's financial situation based on their actual spending patterns.`;
+${Array.isArray(expenseData) && expenseData.length > 0 
+  ? 'Focus on practical, achievable recommendations that will have the most positive impact based on actual spending patterns.'
+  : 'Since no expense data is available, focus on general financial health advice and suggest ways to start tracking expenses.'
+}`;
   }
 
   /**
