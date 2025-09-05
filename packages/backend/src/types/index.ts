@@ -42,6 +42,7 @@ export interface BatchJobStatus {
     sampleFirebaseUserData?: any;
     sampleFirebaseExpenseData?: any;
     sampleOpenaiResponse?: string;
+    sampleOpenaiInput?: any; // What was sent TO OpenAI for the sample user
     sampleOpenaiUsage?: {
       promptTokens: number;
       completionTokens: number;

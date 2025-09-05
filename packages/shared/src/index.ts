@@ -65,6 +65,7 @@ export interface UserRecommendationsResponse {
     firebaseUserData?: any;
     firebaseExpenseData?: any;
     openaiResponse?: string;
+    openaiInput?: any; // What was sent TO OpenAI (system spec, prompt, etc.)
     openaiUsage?: {
       promptTokens: number;
       completionTokens: number;
@@ -97,6 +98,7 @@ export interface BatchJobStatusResponse {
     sampleFirebaseUserData?: any;
     sampleFirebaseExpenseData?: any;
     sampleOpenaiResponse?: string;
+    sampleOpenaiInput?: any; // What was sent TO OpenAI for the sample user
     sampleOpenaiUsage?: {
       promptTokens: number;
       completionTokens: number;

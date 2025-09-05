@@ -47,8 +47,8 @@ export class RecommendationService {
         // Get basic user data
         userData = await this.firebaseService.getUserData(uid);
         
-        // Get expense data using the new getExpenseData function
-        expenseData = await this.firebaseService.getExpenseData(uid);
+        // Get expense data using the new getExpenseData function with date filtering
+        expenseData = await this.firebaseService.getExpenseData(uid, options.startDate, options.endDate);
         
         if (options.includeDebugInfo) {
           debugInfo.firebaseUserData = userData;
@@ -62,11 +62,12 @@ export class RecommendationService {
       }
       
       // Generate recommendations based on expense data
-      const { recommendations, aiResponse, usage } = await this.analyzeUserDataAndGenerateRecommendations(expenseData, userData, options);
+      const { recommendations, aiResponse, usage, openaiInput } = await this.analyzeUserDataAndGenerateRecommendations(expenseData, userData, options);
 
       if (options.includeDebugInfo && aiResponse) {
         debugInfo.openaiResponse = aiResponse;
         debugInfo.openaiUsage = usage;
+        debugInfo.openaiInput = openaiInput;
         debugInfo.processingTime = Date.now() - startTime;
       }
 
@@ -210,7 +211,7 @@ export class RecommendationService {
           // Get expense data for each user for better recommendations
           let expenseData = null;
           try {
-            expenseData = await this.firebaseService.getExpenseData(user.uid);
+            expenseData = await this.firebaseService.getExpenseData(user.uid, options.startDate, options.endDate);
           } catch (expenseError) {
             // If we can't get expense data, we'll use user metadata as fallback
             console.warn(`Could not get expense data for user ${user.uid}, using user data as fallback:`, expenseError);
@@ -236,6 +237,9 @@ export class RecommendationService {
             }
             if (result.usage) {
               batchStatus.debug.sampleOpenaiUsage = result.usage;
+            }
+            if (result.openaiInput) {
+              batchStatus.debug.sampleOpenaiInput = result.openaiInput;
             }
           }
         } catch (error) {
@@ -276,7 +280,8 @@ export class RecommendationService {
   ): Promise<{ 
     recommendations: Recommendation[], 
     aiResponse?: string,
-    usage?: { promptTokens: number, completionTokens: number, totalTokens: number }
+    usage?: { promptTokens: number, completionTokens: number, totalTokens: number },
+    openaiInput?: any
   }> {
     try {
       // Create a prompt for OpenAI based on expense data
@@ -304,6 +309,19 @@ export class RecommendationService {
         timestamp: new Date()
       };
 
+      // Capture what we're sending to OpenAI for debug purposes
+      const openaiInput = options.includeDebugInfo ? {
+        systemSpecification: systemSpec,
+        userMessage: userMessage,
+        prompt: analysisPrompt,
+        expenseDataSummary: {
+          expenseCount: Array.isArray(expenseData) ? expenseData.length : 0,
+          hasUserData: !!userData,
+          dateRange: options.startDate && options.endDate ? 
+            `${options.startDate} to ${options.endDate}` : 'No date filter'
+        }
+      } : undefined;
+
       const aiResponse = await this.openAIService.sendMessage(systemSpec, userMessage);
       
       // Parse AI response to extract recommendations
@@ -312,7 +330,8 @@ export class RecommendationService {
       return {
         recommendations,
         aiResponse: options.includeDebugInfo ? aiResponse.content : undefined,
-        usage: options.includeDebugInfo ? aiResponse.usage : undefined
+        usage: options.includeDebugInfo ? aiResponse.usage : undefined,
+        openaiInput: openaiInput
       };
     } catch (error) {
       console.error('Error generating AI recommendations:', error);

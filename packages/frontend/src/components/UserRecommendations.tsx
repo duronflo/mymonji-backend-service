@@ -233,14 +233,50 @@ export function UserRecommendations() {
             </details>
           )}
 
+          {debugData.openaiInput && (
+            <details style={{ marginTop: '10px' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#ff6600' }}>
+                📤 What was sent TO OpenAI
+              </summary>
+              <div style={{ 
+                background: '#fff8f0', 
+                border: '2px solid #ff6600', 
+                borderRadius: '4px', 
+                padding: '10px', 
+                marginTop: '10px',
+                maxHeight: '400px',
+                overflow: 'auto'
+              }}>
+                <div style={{ marginBottom: '15px' }}>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#ff6600' }}>System Specification:</h5>
+                  <pre style={{ margin: 0, fontSize: '12px', background: '#ffffff', padding: '8px', borderRadius: '3px' }}>
+                    {JSON.stringify(debugData.openaiInput.systemSpecification, null, 2)}
+                  </pre>
+                </div>
+                <div style={{ marginBottom: '15px' }}>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#ff6600' }}>Complete Prompt Sent:</h5>
+                  <pre style={{ margin: 0, fontSize: '12px', background: '#ffffff', padding: '8px', borderRadius: '3px', whiteSpace: 'pre-wrap' }}>
+                    {debugData.openaiInput.prompt}
+                  </pre>
+                </div>
+                <div>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#ff6600' }}>Request Summary:</h5>
+                  <pre style={{ margin: 0, fontSize: '12px', background: '#ffffff', padding: '8px', borderRadius: '3px' }}>
+                    {JSON.stringify(debugData.openaiInput.expenseDataSummary, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </details>
+          )}
+
           {debugData.openaiResponse && (
             <details style={{ marginTop: '10px' }}>
               <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
-                🤖 OpenAI Response
+                📥 What OpenAI returned
               </summary>
               <div style={{ 
-                background: '#f5f5f5', 
-                border: '1px solid #ddd', 
+                background: '#f0f8ff', 
+                border: '2px solid #0066cc', 
                 borderRadius: '4px', 
                 padding: '10px', 
                 marginTop: '10px',

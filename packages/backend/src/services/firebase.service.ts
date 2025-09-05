@@ -65,40 +65,59 @@ export class FirebaseService {
   }
 
   /**
-   * Get user data from Firebase
+   * Get expense data from Firebase with optional date filtering
    * @param uid - User ID
+   * @param startDate - Optional start date for filtering (YYYY-MM-DD format)
+   * @param endDate - Optional end date for filtering (YYYY-MM-DD format)
    * @returns Array of expenses
    */
-  async getExpenseData(uid: string): Promise<any> {
+  async getExpenseData(uid: string, startDate?: string, endDate?: string): Promise<any> {
     try {
       this.initializeFirebase();
       if (!this.db) throw new Error('Firestore not initialized');
 
+      // Build the query with optional date filtering
+      let query: admin.firestore.Query = this.db.collection('users2').doc(uid).collection('expenses');
 
-      const expensesSnapshot = await this.db.collection('users2').doc(uid).collection('expenses').get();
+      // Apply date filtering if provided
+      if (startDate) {
+        const startTimestamp = admin.firestore.Timestamp.fromDate(new Date(startDate + 'T00:00:00.000Z'));
+        query = query.where('date', '>=', startTimestamp);
+      }
+
+      if (endDate) {
+        const endTimestamp = admin.firestore.Timestamp.fromDate(new Date(endDate + 'T23:59:59.999Z'));
+        query = query.where('date', '<=', endTimestamp);
+      }
+
+      // Order by date for consistent results
+      query = query.orderBy('date', 'desc');
+
+      const expensesSnapshot = await query.get();
       const expenses: Array<{
         amount: number;
         category: string,
         currencyCode: string,
-        date: Date,
+        date: any,
         emotion: number,
         name: string
       }> = [];
 
       expensesSnapshot.forEach(doc => {
+        const data = doc.data();
         expenses.push({
-          amount: doc.data().amount,
-          category: doc.data().category,
-          currencyCode: doc.data().currencyCode,
-          date: doc.data().date,
-          emotion: doc.data().emotion,
-          name: doc.data().name
+          amount: data.amount,
+          category: data.category,
+          currencyCode: data.currencyCode,
+          date: data.date,
+          emotion: data.emotion,
+          name: data.name
         });
-        console.log(doc)
       });
 
       if (expenses.length === 0) {
-        throw new Error(`No expenses found for user with UID ${uid}`);
+        const dateInfo = startDate || endDate ? ` between ${startDate || 'start'} and ${endDate || 'end'}` : '';
+        throw new Error(`No expenses found for user with UID ${uid}${dateInfo}`);
       }
 
       return expenses;
