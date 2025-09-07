@@ -36,6 +36,49 @@ export interface OpenAIResponse {
   model?: string;
 }
 
+// Multi-prompt task types
+export type PromptTaskType = 'weekly-report' | 'overall-report';
+
+export interface PromptTask {
+  type: PromptTaskType;
+  role: string;
+  context: string;
+  task: string;
+  guidelines: string[];
+  expectedFormat?: string;
+}
+
+export interface MultiPromptRequest {
+  tasks: PromptTask[];
+  expenseData: any[];
+  userData?: any;
+  dateRange?: {
+    startDate: string;
+    endDate: string;
+  };
+}
+
+export interface TaskResult {
+  type: PromptTaskType;
+  content: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  model?: string;
+  timestamp: Date;
+}
+
+export interface MultiPromptResponse {
+  results: TaskResult[];
+  totalUsage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;

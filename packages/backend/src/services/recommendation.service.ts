@@ -1,22 +1,27 @@
 import { FirebaseService } from './firebase.service';
 import { OpenAIService } from './openai.service';
+import { MultiPromptService } from './multi-prompt.service';
 import type { 
   Recommendation, 
   UserRecommendationsRequest, 
   UserRecommendationsResponse,
   BatchJobStatusResponse,
-  BatchJobStatus
+  BatchJobStatus,
+  MultiPromptRequest,
+  MultiPromptResponse
 } from '../types';
 
 export class RecommendationService {
   private static instance: RecommendationService;
   private firebaseService: FirebaseService;
   private openAIService: OpenAIService;
+  private multiPromptService: MultiPromptService;
   private batchJobs = new Map<string, BatchJobStatus>();
 
   private constructor() {
     this.firebaseService = FirebaseService.getInstance();
     this.openAIService = new OpenAIService();
+    this.multiPromptService = new MultiPromptService(this.openAIService);
   }
 
   public static getInstance(): RecommendationService {
@@ -111,6 +116,120 @@ export class RecommendationService {
         };
         
         // Attach debug info to the error so the route handler can include it in the response
+        (error as any).debugInfo = debugInfo;
+        (error as any).partialResponse = errorResponse;
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Generate multi-prompt analysis for a specific user
+   * @param uid - User ID
+   * @param options - Optional date range and debug flags for recommendations
+   * @returns Multi-prompt analysis results
+   */
+  async generateUserMultiPromptAnalysis(
+    uid: string, 
+    options: UserRecommendationsRequest = {}
+  ): Promise<UserRecommendationsResponse & { multiPromptResults?: MultiPromptResponse }> {
+    const startTime = Date.now();
+    let debugInfo: any = {};
+    let userData: any = null;
+    let expenseData: any = null;
+    
+    try {
+      // Get user data and expense data from Firebase
+      try {
+        userData = await this.firebaseService.getUserData(uid);
+        expenseData = await this.firebaseService.getExpenseData(uid, options.startDate, options.endDate);
+        
+        if (options.includeDebugInfo) {
+          debugInfo.firebaseUserData = userData;
+          debugInfo.firebaseExpenseData = expenseData;
+        }
+      } catch (error) {
+        console.error('Error fetching Firebase data:', error);
+        throw error;
+      }
+
+      // Create multi-prompt request
+      const multiPromptRequest: MultiPromptRequest = {
+        tasks: this.multiPromptService.createPromptTasks(),
+        expenseData: expenseData || [],
+        userData: userData,
+        dateRange: options.startDate && options.endDate ? {
+          startDate: options.startDate,
+          endDate: options.endDate
+        } : undefined
+      };
+
+      // Process multi-prompt analysis
+      const multiPromptResults = await this.multiPromptService.processMultiplePrompts(multiPromptRequest);
+
+      // Extract recommendations from the weekly report result
+      const weeklyReportResult = multiPromptResults.results.find(r => r.type === 'weekly-report');
+      let recommendations: Recommendation[] = [];
+      
+      if (weeklyReportResult) {
+        try {
+          // Try to parse the weekly report and extract insights as recommendations
+          const weeklyReport = JSON.parse(weeklyReportResult.content);
+          if (weeklyReport.insights && weeklyReport.insights.what_stood_out) {
+            recommendations = weeklyReport.insights.what_stood_out.map((insight: string, index: number) => ({
+              category: `Weekly Insight ${index + 1}`,
+              advice: insight
+            }));
+          }
+        } catch (parseError) {
+          console.warn('Could not parse weekly report as JSON, using fallback recommendations');
+          recommendations = this.getFallbackRecommendations(expenseData || []);
+        }
+      } else {
+        recommendations = this.getFallbackRecommendations(expenseData || []);
+      }
+
+      // Prepare debug information
+      if (options.includeDebugInfo) {
+        debugInfo.processingTime = Date.now() - startTime;
+        debugInfo.multiPromptInput = multiPromptRequest;
+        debugInfo.multiPromptResults = multiPromptResults;
+        if (multiPromptResults.totalUsage) {
+          debugInfo.openaiUsage = multiPromptResults.totalUsage;
+        }
+      }
+
+      const response: UserRecommendationsResponse & { multiPromptResults?: MultiPromptResponse } = {
+        uid,
+        recommendations,
+        multiPromptResults,
+        debug: options.includeDebugInfo ? debugInfo : undefined
+      };
+
+      return response;
+
+    } catch (error: any) {
+      console.error('Error generating multi-prompt analysis:', error);
+      
+      if (options.includeDebugInfo) {
+        debugInfo.processingTime = Date.now() - startTime;
+        debugInfo.errorMessage = error instanceof Error ? error.message : String(error);
+        debugInfo.errorStack = error instanceof Error ? error.stack : undefined;
+        debugInfo.errorType = error instanceof Error ? error.constructor.name : 'Unknown';
+        
+        debugInfo.dataCollectionStatus = {
+          userDataCollected: !!userData,
+          expenseDataCollected: !!expenseData,
+          expenseCount: Array.isArray(expenseData) ? expenseData.length : 0
+        };
+        
+        const errorResponse: UserRecommendationsResponse = {
+          uid,
+          recommendations: this.getFallbackRecommendations(expenseData || []),
+          debug: debugInfo
+        };
+        
         (error as any).debugInfo = debugInfo;
         (error as any).partialResponse = errorResponse;
       }

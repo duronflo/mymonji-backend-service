@@ -8,8 +8,11 @@ export function UserRecommendations() {
   const [endDate, setEndDate] = useState('');
   const [includeDebugInfo, setIncludeDebugInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMultiPrompt, setIsLoadingMultiPrompt] = useState(false);
   const [result, setResult] = useState<string>('');
+  const [multiPromptResult, setMultiPromptResult] = useState<string>('');
   const [debugData, setDebugData] = useState<any>(null);
+  const [multiPromptDebugData, setMultiPromptDebugData] = useState<any>(null);
 
   const getRecommendations = async () => {
     if (!uid.trim()) {
@@ -72,6 +75,96 @@ export function UserRecommendations() {
     }
   };
 
+  const getMultiPromptAnalysis = async () => {
+    if (!uid.trim()) {
+      setMultiPromptResult('❌ Please enter a User ID');
+      return;
+    }
+
+    setIsLoadingMultiPrompt(true);
+    setMultiPromptResult('');
+    setMultiPromptDebugData(null);
+
+    try {
+      const request: UserRecommendationsRequest = {};
+      
+      if (startDate) request.startDate = startDate;
+      if (endDate) request.endDate = endDate;
+      if (includeDebugInfo) request.includeDebugInfo = true;
+
+      const response = await ApiService.getUserMultiPromptAnalysis(uid, request);
+      
+      if (response.success && response.data) {
+        const data = response.data;
+        let resultText = `✅ Multi-Prompt Analysis Generated Successfully\nUser ID: ${data.uid}\n\n`;
+        
+        // Show basic recommendations
+        if (data.recommendations && data.recommendations.length > 0) {
+          resultText += `Recommendations from Weekly Report:\n`;
+          data.recommendations.forEach((rec: Recommendation, index: number) => {
+            resultText += `\n${index + 1}. ${rec.category}: ${rec.advice}\n`;
+          });
+        } else {
+          resultText += 'No recommendations found for this user.\n';
+        }
+
+        // Show multi-prompt results
+        if (data.multiPromptResults && data.multiPromptResults.results) {
+          resultText += `\n\nMulti-Prompt Analysis Results:\n`;
+          
+          data.multiPromptResults.results.forEach((result: any, index: number) => {
+            resultText += `\n--- Task ${index + 1}: ${result.type} ---\n`;
+            try {
+              // Try to parse and format JSON content
+              const parsedContent = JSON.parse(result.content);
+              if (result.type === 'weekly-report') {
+                resultText += `Period: ${parsedContent.report_period?.start} to ${parsedContent.report_period?.end}\n`;
+                resultText += `Total Expenses: €${parsedContent.kpis?.total_expenses_eur || 0}\n`;
+                resultText += `Transactions: ${parsedContent.kpis?.transactions_count || 0}\n`;
+                if (parsedContent.insights?.what_stood_out) {
+                  resultText += `\nKey Insights:\n`;
+                  parsedContent.insights.what_stood_out.forEach((insight: string, i: number) => {
+                    resultText += `  ${i + 1}. ${insight}\n`;
+                  });
+                }
+              } else {
+                resultText += `${JSON.stringify(parsedContent, null, 2)}\n`;
+              }
+            } catch {
+              // If not valid JSON, show raw content
+              resultText += `${result.content}\n`;
+            }
+            if (result.usage) {
+              resultText += `Tokens: ${result.usage.totalTokens} (${result.usage.promptTokens} prompt + ${result.usage.completionTokens} completion)\n`;
+            }
+          });
+
+          if (data.multiPromptResults.totalUsage) {
+            resultText += `\nTotal Usage: ${data.multiPromptResults.totalUsage.totalTokens} tokens\n`;
+          }
+        }
+
+        setMultiPromptResult(resultText);
+        
+        // Store debug data for expandable sections
+        if (data.debug) {
+          setMultiPromptDebugData(data.debug);
+        }
+      } else {
+        setMultiPromptResult(`❌ Failed to get multi-prompt analysis: ${response.error || 'Unknown error'}`);
+      }
+
+      // Check for debug data even if request failed
+      if (response.data && response.data.debug) {
+        setMultiPromptDebugData(response.data.debug);
+      }
+    } catch (error) {
+      setMultiPromptResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoadingMultiPrompt(false);
+    }
+  };
+
   return (
     <div className="user-recommendations">
       <h3>User Recommendations</h3>
@@ -130,10 +223,26 @@ export function UserRecommendations() {
       >
         {isLoading ? 'Generating...' : 'Get Recommendations'}
       </button>
+
+      <button 
+        onClick={getMultiPromptAnalysis} 
+        disabled={isLoadingMultiPrompt}
+        className="btn btn-secondary"
+        style={{ marginLeft: '10px' }}
+      >
+        {isLoadingMultiPrompt ? 'Analyzing...' : 'Get Multi-Prompt Analysis'}
+      </button>
       
       {result && (
         <div className="result">
           <pre>{result}</pre>
+        </div>
+      )}
+
+      {multiPromptResult && (
+        <div className="result" style={{ marginTop: '20px' }}>
+          <h4>📊 Multi-Prompt Analysis Results</h4>
+          <pre>{multiPromptResult}</pre>
         </div>
       )}
 
@@ -288,6 +397,60 @@ export function UserRecommendations() {
                 </pre>
               </div>
             </details>
+          )}
+        </div>
+      )}
+
+      {multiPromptDebugData && (
+        <div className="debug-section" style={{ marginTop: '20px' }}>
+          <h4>🔍 Multi-Prompt Debug Information</h4>
+          
+          {multiPromptDebugData.multiPromptInput && (
+            <details style={{ marginTop: '10px' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#9966cc' }}>
+                📤 Multi-Prompt Input Sent to AI
+              </summary>
+              <div style={{ 
+                background: '#f8f0ff', 
+                border: '2px solid #9966cc', 
+                borderRadius: '4px', 
+                padding: '10px', 
+                marginTop: '10px',
+                maxHeight: '400px',
+                overflow: 'auto'
+              }}>
+                <pre style={{ margin: 0, fontSize: '12px' }}>
+                  {JSON.stringify(multiPromptDebugData.multiPromptInput, null, 2)}
+                </pre>
+              </div>
+            </details>
+          )}
+
+          {multiPromptDebugData.multiPromptResults && (
+            <details style={{ marginTop: '10px' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#cc6699' }}>
+                📥 Raw Multi-Prompt Results from AI
+              </summary>
+              <div style={{ 
+                background: '#fff0f8', 
+                border: '2px solid #cc6699', 
+                borderRadius: '4px', 
+                padding: '10px', 
+                marginTop: '10px',
+                maxHeight: '400px',
+                overflow: 'auto'
+              }}>
+                <pre style={{ margin: 0, fontSize: '12px' }}>
+                  {JSON.stringify(multiPromptDebugData.multiPromptResults, null, 2)}
+                </pre>
+              </div>
+            </details>
+          )}
+
+          {multiPromptDebugData.processingTime && (
+            <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+              ⏱️ Processing time: {multiPromptDebugData.processingTime}ms
+            </div>
           )}
         </div>
       )}
