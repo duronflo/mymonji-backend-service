@@ -13,10 +13,10 @@ export {
   BatchJobResponse,
   BatchJobStatusResponse,
   PromptTaskType,
-  PromptTask,
-  MultiPromptRequest,
+  
+  
   TaskResult,
-  MultiPromptResponse
+  
 } from '@mymonji/shared';
 
 // Import types for internal use

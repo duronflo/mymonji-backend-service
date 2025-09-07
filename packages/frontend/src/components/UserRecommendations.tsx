@@ -30,6 +30,8 @@ export function UserRecommendations() {
       if (startDate) request.startDate = startDate;
       if (endDate) request.endDate = endDate;
       if (includeDebugInfo) request.includeDebugInfo = true;
+      // Add task parameters for multi-prompt functionality
+      request.tasks = ['weekly-report', 'overall-report'];
 
       const response = await ApiService.getUserRecommendations(uid, request);
       
@@ -41,6 +43,10 @@ export function UserRecommendations() {
           data.recommendations.forEach((rec: Recommendation, index: number) => {
             resultText += `\n${index + 1}. Category: ${rec.category}\n   Advice: ${rec.advice}\n`;
           });
+
+          if (data.debug && data.debug.totalUsage) {
+            resultText += `\nTotal Usage: ${data.debug.totalUsage.totalTokens} tokens\n`;
+          }
         } else {
           resultText += '\nNo recommendations found for this user.';
         }
@@ -91,8 +97,10 @@ export function UserRecommendations() {
       if (startDate) request.startDate = startDate;
       if (endDate) request.endDate = endDate;
       if (includeDebugInfo) request.includeDebugInfo = true;
+      // Add task parameters for multi-prompt functionality
+      request.tasks = ['weekly-report', 'overall-report'];
 
-      const response = await ApiService.getUserMultiPromptAnalysis(uid, request);
+      const response = await ApiService.getUserRecommendations(uid, request);
       
       if (response.success && response.data) {
         const data = response.data;
@@ -104,15 +112,19 @@ export function UserRecommendations() {
           data.recommendations.forEach((rec: Recommendation, index: number) => {
             resultText += `\n${index + 1}. ${rec.category}: ${rec.advice}\n`;
           });
+
+          if (data.debug && data.debug.totalUsage) {
+            resultText += `\nTotal Usage: ${data.debug.totalUsage.totalTokens} tokens\n`;
+          }
         } else {
           resultText += 'No recommendations found for this user.\n';
         }
 
         // Show multi-prompt results
-        if (data.multiPromptResults && data.multiPromptResults.results) {
+        if (data.taskResults && data.taskResults.length > 0) {
           resultText += `\n\nMulti-Prompt Analysis Results:\n`;
           
-          data.multiPromptResults.results.forEach((result: any, index: number) => {
+          data.taskResults.forEach((result: any, index: number) => {
             resultText += `\n--- Task ${index + 1}: ${result.type} ---\n`;
             try {
               // Try to parse and format JSON content
@@ -126,6 +138,10 @@ export function UserRecommendations() {
                   parsedContent.insights.what_stood_out.forEach((insight: string, i: number) => {
                     resultText += `  ${i + 1}. ${insight}\n`;
                   });
+
+          if (data.debug && data.debug.totalUsage) {
+            resultText += `\nTotal Usage: ${data.debug.totalUsage.totalTokens} tokens\n`;
+          }
                 }
               } else {
                 resultText += `${JSON.stringify(parsedContent, null, 2)}\n`;
@@ -139,9 +155,10 @@ export function UserRecommendations() {
             }
           });
 
-          if (data.multiPromptResults.totalUsage) {
-            resultText += `\nTotal Usage: ${data.multiPromptResults.totalUsage.totalTokens} tokens\n`;
+          if (data.debug && data.debug.totalUsage) {
+            resultText += `\nTotal Usage: ${data.debug.totalUsage.totalTokens} tokens\n`;
           }
+
         }
 
         setMultiPromptResult(resultText);
@@ -151,7 +168,7 @@ export function UserRecommendations() {
           setMultiPromptDebugData(data.debug);
         }
       } else {
-        setMultiPromptResult(`❌ Failed to get multi-prompt analysis: ${response.error || 'Unknown error'}`);
+        setMultiPromptResult(`❌ Failed to get recommendations with task-based analysis: ${response.error || 'Unknown error'}`);
       }
 
       // Check for debug data even if request failed
@@ -426,7 +443,7 @@ export function UserRecommendations() {
             </details>
           )}
 
-          {multiPromptDebugData.multiPromptResults && (
+          {multiPromptDebugData.taskResults && (
             <details style={{ marginTop: '10px' }}>
               <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#cc6699' }}>
                 📥 Raw Multi-Prompt Results from AI
@@ -441,7 +458,7 @@ export function UserRecommendations() {
                 overflow: 'auto'
               }}>
                 <pre style={{ margin: 0, fontSize: '12px' }}>
-                  {JSON.stringify(multiPromptDebugData.multiPromptResults, null, 2)}
+                  {JSON.stringify(multiPromptDebugData.taskResults, null, 2)}
                 </pre>
               </div>
             </details>
