@@ -8,7 +8,9 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 import { chatRoutes } from './routes/chat.routes';
+import { firebaseRoutes } from './routes/firebase.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
+import type { ApiResponse } from './types';
 
 // Debug environment variable loading
 console.log('🔧 Environment variables loaded:');
@@ -48,17 +50,25 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
+// Health check endpoint - Updated format as per requirements
 app.get('/health', (req, res) => {
-  res.json({
+  const healthData = {
+    status: 'ok',
+    uptime: Math.floor(process.uptime())
+  };
+
+  const response: ApiResponse<{ status: string; uptime: number }> = {
     success: true,
-    data: 'Server is running',
-    message: 'OK',
-  });
+    data: healthData,
+    message: 'Health check completed successfully'
+  };
+
+  res.json(response);
 });
 
 // API routes
 app.use('/api/chat', chatRoutes);
+app.use('/', firebaseRoutes); // Firebase routes at root level as specified
 
 // Error handling middleware
 app.use(notFound);

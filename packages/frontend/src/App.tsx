@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import './App.css';
-import { SystemPanel } from './components/SystemPanel';
-import { MessageList } from './components/MessageList';
-import { MessageInput } from './components/MessageInput';
+import { SystemPanel, MessageList, MessageInput, FirebaseTestPanel } from './components';
 import { ApiService } from './services/api.service';
 import type { SystemSpecification, ChatMessage, UserMessage } from './types/index';
 
 function App() {
+  // State for tab management
+  const [activeTab, setActiveTab] = useState<'chat' | 'firebase'>('chat');
+
   // State for system specification
   const [systemSpec, setSystemSpec] = useState<SystemSpecification>({
     role: 'Helpful AI Assistant',
@@ -90,34 +91,55 @@ function App() {
   return (
     <div className="chat-container">
       <header className="chat-header">
-        <h1>MyMonji Chat Interface</h1>
-        <p>Configure your AI assistant and start chatting with OpenAI</p>
+        <h1>MyMonji Backend Service</h1>
+        <p>Test the chat interface and Firebase endpoints</p>
+        
+        <nav className="tab-nav">
+          <button 
+            className={`tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
+            onClick={() => setActiveTab('chat')}
+          >
+            Chat Interface
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'firebase' ? 'active' : ''}`}
+            onClick={() => setActiveTab('firebase')}
+          >
+            Firebase Testing
+          </button>
+        </nav>
       </header>
 
       <div className="chat-content">
-        <SystemPanel
-          systemSpec={systemSpec}
-          onSystemSpecChange={setSystemSpec}
-        />
-        
-        <div className="chat-panel">
-          {error && (
-            <div className="error">
-              {error}
+        {activeTab === 'chat' ? (
+          <>
+            <SystemPanel
+              systemSpec={systemSpec}
+              onSystemSpecChange={setSystemSpec}
+            />
+            
+            <div className="chat-panel">
+              {error && (
+                <div className="error">
+                  {error}
+                </div>
+              )}
+              
+              <MessageList
+                messages={messages}
+                isLoading={isLoading}
+              />
+              
+              <MessageInput
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                disabled={!isSystemConfigComplete}
+              />
             </div>
-          )}
-          
-          <MessageList
-            messages={messages}
-            isLoading={isLoading}
-          />
-          
-          <MessageInput
-            onSendMessage={handleSendMessage}
-            isLoading={isLoading}
-            disabled={!isSystemConfigComplete}
-          />
-        </div>
+          </>
+        ) : (
+          <FirebaseTestPanel />
+        )}
       </div>
     </div>
   );

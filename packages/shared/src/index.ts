@@ -42,3 +42,69 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+// Firebase and Recommendation related types
+export interface Recommendation {
+  category: string;
+  advice: string;
+}
+
+export interface UserRecommendationsRequest {
+  startDate?: string;
+  endDate?: string;
+  // Add debug flag to include Firebase data and OpenAI responses
+  includeDebugInfo?: boolean;
+}
+
+export interface UserRecommendationsResponse {
+  uid: string;
+  recommendations: Recommendation[];
+  // Debug information - optional fields for testing/debugging
+  debug?: {
+    firebaseData?: any; // Legacy field for backwards compatibility
+    firebaseUserData?: any;
+    firebaseExpenseData?: any;
+    openaiResponse?: string;
+    openaiInput?: any; // What was sent TO OpenAI (system spec, prompt, etc.)
+    openaiUsage?: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+    processingTime?: number;
+  };
+}
+
+export interface BatchJobRequest {
+  startDate?: string;
+  endDate?: string;
+  // Add debug flag to include Firebase data and OpenAI responses
+  includeDebugInfo?: boolean;
+}
+
+export interface BatchJobResponse {
+  status: string;
+  jobId: string;
+}
+
+export interface BatchJobStatusResponse {
+  jobId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  processedUsers?: number;
+  durationSec?: number;
+  // Debug information for batch processing
+  debug?: {
+    sampleFirebaseData?: any; // Legacy field for backwards compatibility
+    sampleFirebaseUserData?: any;
+    sampleFirebaseExpenseData?: any;
+    sampleOpenaiResponse?: string;
+    sampleOpenaiInput?: any; // What was sent TO OpenAI for the sample user
+    sampleOpenaiUsage?: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+    totalUsers?: number;
+    processingErrors?: string[];
+  };
+}

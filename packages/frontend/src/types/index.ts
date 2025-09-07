@@ -5,7 +5,13 @@ export {
   OpenAIMessage,
   OpenAIRequest,
   OpenAIResponse,
-  ApiResponse
+  ApiResponse,
+  Recommendation,
+  UserRecommendationsRequest,
+  UserRecommendationsResponse,
+  BatchJobRequest,
+  BatchJobResponse,
+  BatchJobStatusResponse
 } from '@mymonji/shared';
 
 // Frontend-specific types
