@@ -36,6 +36,24 @@ export interface OpenAIResponse {
   model?: string;
 }
 
+// Task types for multi-prompt functionality integrated into existing services
+export type PromptTaskType = 'weekly-report' | 'overall-report';
+
+
+
+export interface TaskResult {
+  type: PromptTaskType;
+  content: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  model?: string;
+  timestamp: Date;
+}
+
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -54,11 +72,17 @@ export interface UserRecommendationsRequest {
   endDate?: string;
   // Add debug flag to include Firebase data and OpenAI responses
   includeDebugInfo?: boolean;
+  // Add task parameter to support multi-prompt functionality
+  task?: PromptTaskType;
+  // Support for multiple tasks in a single request
+  tasks?: PromptTaskType[];
 }
 
 export interface UserRecommendationsResponse {
   uid: string;
   recommendations: Recommendation[];
+  // Multi-prompt task results (when tasks are specified)
+  taskResults?: TaskResult[];
   // Debug information - optional fields for testing/debugging
   debug?: {
     firebaseData?: any; // Legacy field for backwards compatibility
@@ -72,6 +96,14 @@ export interface UserRecommendationsResponse {
       totalTokens: number;
     };
     processingTime?: number;
+    // Multi-prompt debug information
+    multiPromptInputs?: any[];
+    multiPromptOutputs?: any[];
+    totalUsage?: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
   };
 }
 

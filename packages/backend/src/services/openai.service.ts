@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { SystemSpecification, UserMessage, OpenAIMessage, OpenAIResponse } from '../types';
+import { SystemSpecification, UserMessage, OpenAIMessage, OpenAIResponse, PromptTaskType } from '../types';
 
 export class OpenAIService {
   private openai: OpenAI | null = null;
@@ -32,9 +32,10 @@ export class OpenAIService {
 
   /**
    * Converts SystemSpecification to OpenAI system message
+   * Enhanced to support task-specific modifications
    */
-  private buildSystemMessage(spec: SystemSpecification): OpenAIMessage {
-    const systemContent = `
+  private buildSystemMessage(spec: SystemSpecification, task?: PromptTaskType): OpenAIMessage {
+    let systemContent = `
 Role: ${spec.role}
 
 Background: ${spec.background}
@@ -43,23 +44,58 @@ Personality: ${spec.personality}
 
 Rules:
 ${spec.rules.map((rule: string) => `- ${rule}`).join('\n')}
+`;
 
-Please respond according to this specification and maintain consistency throughout the conversation.
-    `.trim();
+    // Add task-specific enhancements
+    if (task) {
+      systemContent += this.getTaskSpecificInstructions(task);
+    }
+
+    systemContent += '\nPlease respond according to this specification and maintain consistency throughout the conversation.';
 
     return {
       role: 'system',
-      content: systemContent
+      content: systemContent.trim()
     };
   }
 
   /**
+   * Get task-specific instructions to append to the system message
+   */
+  private getTaskSpecificInstructions(task: PromptTaskType): string {
+    switch (task) {
+      case 'weekly-report':
+        return `
+
+Task-Specific Instructions for Weekly Report:
+- Focus on the last 7 days of expense data
+- Highlight emotional drivers: categories with strongly negative avg. emotion (≤ -3) and strongly positive avg. emotion (≥ +3)
+- Mark outliers (≥ P95 of the last 6 weeks or > 2× category average)
+- Deliver "What stood out?" as exactly 3 bullet points
+- Use the provided JSON structure for response format`;
+
+      case 'overall-report':
+        return `
+
+Task-Specific Instructions for Overall Report:
+- Create an overall financial report for the user
+- This is currently a placeholder implementation
+- Return a simple HelloWorld response for now: {"message": "Hello World - Overall report placeholder"}`;
+
+      default:
+        return '';
+    }
+  }
+
+  /**
    * Sends a message to OpenAI and returns the response
+   * Extended to support task-based prompts for multi-prompt functionality
    */
   async sendMessage(
     systemSpec: SystemSpecification,
     userMessage: UserMessage,
-    model: string = 'gpt-3.5-turbo'
+    model: string = 'gpt-3.5-turbo',
+    task?: PromptTaskType
   ): Promise<OpenAIResponse> {
     if (!this.isConfigured() || !this.openai) {
       throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable with a valid API key.');
@@ -67,7 +103,7 @@ Please respond according to this specification and maintain consistency througho
 
     try {
       const messages: OpenAIMessage[] = [
-        this.buildSystemMessage(systemSpec),
+        this.buildSystemMessage(systemSpec, task),
         {
           role: 'user',
           content: userMessage.content

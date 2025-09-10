@@ -5,7 +5,11 @@ import type {
   UserRecommendationsRequest, 
   UserRecommendationsResponse,
   BatchJobStatusResponse,
-  BatchJobStatus
+  BatchJobStatus,
+  PromptTaskType,
+  TaskResult,
+  SystemSpecification,
+  UserMessage
 } from '../types';
 
 export class RecommendationService {
@@ -28,9 +32,10 @@ export class RecommendationService {
 
   /**
    * Generate recommendations for a specific user
+   * Extended to support task-based multi-prompt functionality
    * @param uid - User ID
-   * @param options - Optional date range and debug flags for recommendations
-   * @returns User recommendations
+   * @param options - Optional date range, debug flags, and task specifications for recommendations
+   * @returns User recommendations and optional task results
    */
   async generateUserRecommendations(
     uid: string, 
@@ -66,58 +71,20 @@ export class RecommendationService {
         throw firebaseError;
       }
       
-      // Generate recommendations based on expense data
-      const { recommendations, aiResponse, usage, openaiInput } = await this.analyzeUserDataAndGenerateRecommendations(expenseData, userData, options);
-
-      if (options.includeDebugInfo && aiResponse) {
-        debugInfo.openaiResponse = aiResponse;
-        debugInfo.openaiUsage = usage;
-        debugInfo.openaiInput = openaiInput;
-        debugInfo.processingTime = Date.now() - startTime;
+      // Handle multi-prompt tasks or traditional recommendations
+      if (options.task || options.tasks) {
+        return await this.generateMultiPromptResponse(uid, expenseData, userData, options, debugInfo, startTime);
+      } else {
+        return await this.generateTraditionalRecommendations(uid, expenseData, userData, options, debugInfo, startTime);
       }
-
-      const response: UserRecommendationsResponse = {
-        uid,
-        recommendations
-      };
-
-      if (options.includeDebugInfo) {
-        response.debug = debugInfo;
-      }
-
-      return response;
     } catch (error) {
-      console.error(`Error generating recommendations for user ${uid}:`, error);
-      
-      // Include debug information in error response if requested
-      if (options.includeDebugInfo) {
-        debugInfo.processingTime = Date.now() - startTime;
-        debugInfo.errorMessage = error instanceof Error ? error.message : String(error);
-        debugInfo.errorStack = error instanceof Error ? error.stack : undefined;
-        debugInfo.errorType = error instanceof Error ? error.constructor.name : 'Unknown';
-        
-        // Add context about what we were able to collect before the error
-        debugInfo.dataCollectionStatus = {
-          userDataCollected: !!userData,
-          expenseDataCollected: !!expenseData,
-          expenseCount: Array.isArray(expenseData) ? expenseData.length : 0
-        };
-        
-        // Still return what we collected, even if incomplete
-        const errorResponse: UserRecommendationsResponse = {
-          uid,
-          recommendations: this.getFallbackRecommendations(expenseData || []),
-          debug: debugInfo
-        };
-        
-        // Attach debug info to the error so the route handler can include it in the response
-        (error as any).debugInfo = debugInfo;
-        (error as any).partialResponse = errorResponse;
-      }
-      
-      throw error;
+      return this.handleRecommendationError(uid, error, options, debugInfo, startTime, expenseData, userData);
     }
   }
+
+  /**
+   * Generate multi-prompt analysis for a specific user
+   * @param uid - User ID
 
   /**
    * Start a batch job to process all users
@@ -506,5 +473,374 @@ ${Array.isArray(expenseData) && expenseData.length > 0
     }
 
     return fallbackRecs;
+  }
+
+  /**
+   * Generate multi-prompt response using task-based approach
+   */
+  private async generateMultiPromptResponse(
+    uid: string,
+    expenseData: any,
+    userData: any,
+    options: UserRecommendationsRequest,
+    debugInfo: any,
+    startTime: number
+  ): Promise<UserRecommendationsResponse> {
+    const tasks = this.determineTasks(options);
+    const taskResults: TaskResult[] = [];
+    let totalPromptTokens = 0;
+    let totalCompletionTokens = 0;
+    let totalTokens = 0;
+    const multiPromptInputs: any[] = [];
+    const multiPromptOutputs: any[] = [];
+
+    for (const task of tasks) {
+      try {
+        const result = await this.processTask(task, expenseData, userData, options);
+        taskResults.push(result);
+
+        // Accumulate usage statistics
+        if (result.usage) {
+          totalPromptTokens += result.usage.promptTokens;
+          totalCompletionTokens += result.usage.completionTokens;
+          totalTokens += result.usage.totalTokens;
+        }
+
+        // Collect debug information
+        if (options.includeDebugInfo) {
+          multiPromptInputs.push({
+            task: task,
+            prompt: this.createTaskPrompt(task, expenseData, userData, options)
+          });
+          multiPromptOutputs.push({
+            task: task,
+            content: result.content,
+            usage: result.usage
+          });
+        }
+      } catch (error) {
+        console.error(`Error processing task ${task}:`, error);
+        // Add error result
+        taskResults.push({
+          type: task,
+          content: `Error processing ${task}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          timestamp: new Date()
+        });
+      }
+    }
+
+    // Generate traditional recommendations as fallback
+    const traditionalResult = await this.analyzeUserDataAndGenerateRecommendations(expenseData, userData, options);
+
+    if (options.includeDebugInfo) {
+      debugInfo.multiPromptInputs = multiPromptInputs;
+      debugInfo.multiPromptOutputs = multiPromptOutputs;
+      debugInfo.totalUsage = totalTokens > 0 ? {
+        promptTokens: totalPromptTokens,
+        completionTokens: totalCompletionTokens,
+        totalTokens: totalTokens
+      } : undefined;
+      debugInfo.processingTime = Date.now() - startTime;
+    }
+
+    const response: UserRecommendationsResponse = {
+      uid,
+      recommendations: traditionalResult.recommendations,
+      taskResults
+    };
+
+    if (options.includeDebugInfo) {
+      response.debug = debugInfo;
+    }
+
+    return response;
+  }
+
+  /**
+   * Generate traditional recommendations (backward compatibility)
+   */
+  private async generateTraditionalRecommendations(
+    uid: string,
+    expenseData: any,
+    userData: any,
+    options: UserRecommendationsRequest,
+    debugInfo: any,
+    startTime: number
+  ): Promise<UserRecommendationsResponse> {
+    const { recommendations, aiResponse, usage, openaiInput } = await this.analyzeUserDataAndGenerateRecommendations(expenseData, userData, options);
+
+    if (options.includeDebugInfo && aiResponse) {
+      debugInfo.openaiResponse = aiResponse;
+      debugInfo.openaiUsage = usage;
+      debugInfo.openaiInput = openaiInput;
+      debugInfo.processingTime = Date.now() - startTime;
+    }
+
+    const response: UserRecommendationsResponse = {
+      uid,
+      recommendations
+    };
+
+    if (options.includeDebugInfo) {
+      response.debug = debugInfo;
+    }
+
+    return response;
+  }
+
+  /**
+   * Handle recommendation generation errors
+   */
+  private handleRecommendationError(
+    uid: string,
+    error: any,
+    options: UserRecommendationsRequest,
+    debugInfo: any,
+    startTime: number,
+    expenseData: any, userData: any = null
+  ): UserRecommendationsResponse {
+    console.error(`Error generating recommendations for user ${uid}:`, error);
+    
+    // Include debug information in error response if requested
+    if (options.includeDebugInfo) {
+      debugInfo.processingTime = Date.now() - startTime;
+      debugInfo.errorMessage = error instanceof Error ? error.message : String(error);
+      debugInfo.errorStack = error instanceof Error ? error.stack : undefined;
+      debugInfo.errorType = error instanceof Error ? error.constructor.name : 'Unknown';
+      
+      // Add context about what we were able to collect before the error
+      debugInfo.dataCollectionStatus = {
+        userDataCollected: !!userData,
+        expenseDataCollected: !!expenseData,
+        expenseCount: Array.isArray(expenseData) ? expenseData.length : 0
+      };
+      
+      // Still return what we collected, even if incomplete
+      const errorResponse: UserRecommendationsResponse = {
+        uid,
+        recommendations: this.getFallbackRecommendations(expenseData || []),
+        debug: debugInfo
+      };
+      
+      // Attach debug info to the error so the route handler can include it in the response
+      (error as any).debugInfo = debugInfo;
+      (error as any).partialResponse = errorResponse;
+    }
+    
+    throw error;
+  }
+
+  /**
+   * Determine which tasks to execute based on options
+   */
+  private determineTasks(options: UserRecommendationsRequest): PromptTaskType[] {
+    if (options.tasks && options.tasks.length > 0) {
+      return options.tasks;
+    }
+    if (options.task) {
+      return [options.task];
+    }
+    // Default tasks if none specified
+    return ['weekly-report', 'overall-report'];
+  }
+
+  /**
+   * Process a single task using the OpenAI service with task-specific context
+   */
+  private async processTask(
+    task: PromptTaskType,
+    expenseData: any,
+    userData: any,
+    options: UserRecommendationsRequest
+  ): Promise<TaskResult> {
+    const systemSpec = this.createTaskSystemSpecification(task);
+    const userMessage = this.createTaskUserMessage(task, expenseData, userData, options);
+
+    const response = await this.openAIService.sendMessage(systemSpec, userMessage, 'gpt-3.5-turbo', task);
+
+    return {
+      type: task,
+      content: response.content,
+      usage: response.usage,
+      model: response.model,
+      timestamp: response.timestamp
+    };
+  }
+
+  /**
+   * Create system specification for a specific task
+   */
+  private createTaskSystemSpecification(task: PromptTaskType): SystemSpecification {
+    const baseRole = 'You are a renowned Money Coach – with strong specialization in Data Science – advising people on better money management.';
+    const baseBackground = `You are a money coach who advises individual clients regarding their spending behavior.
+Expenses are collected per user. These data include: date of expense, description, amount, category, and as a central function the emotion.
+Expenses are provided in JSON format.
+The emotion is a numerical value. -10 means the worst emotion (e.g., anger/rage), 0 is neutral, and 10 is the highest value (happiness).`;
+
+    const baseRules = [
+      'Provide accurate analysis based on the provided data',
+      'Use the specified JSON format for responses',
+      'Be concise and actionable in recommendations'
+    ];
+
+    switch (task) {
+      case 'weekly-report':
+        return {
+          role: baseRole,
+          background: baseBackground,
+          personality: 'Professional, analytical, and data-driven',
+          rules: [
+            ...baseRules,
+            'Focus on the last 7 days of expense data',
+            'Highlight emotional drivers: categories with strongly negative avg. emotion (≤ -3) and strongly positive avg. emotion (≥ +3)',
+            'Mark outliers (≥ P95 of the last 6 weeks or > 2× category average)',
+            'Deliver "What stood out?" as exactly 3 bullet points',
+            'Follow the exact JSON structure provided in the guidelines'
+          ]
+        };
+
+      case 'overall-report':
+        return {
+          role: baseRole,
+          background: baseBackground,
+          personality: 'Professional, analytical, and data-driven',
+          rules: [
+            ...baseRules,
+            'Create an overall financial report for the user',
+            'This is currently a placeholder implementation',
+            'Return a simple HelloWorld response for now'
+          ]
+        };
+
+      default:
+        return {
+          role: baseRole,
+          background: baseBackground,
+          personality: 'Professional, analytical, and data-driven',
+          rules: baseRules
+        };
+    }
+  }
+
+  /**
+   * Create user message for a specific task
+   */
+  private createTaskUserMessage(
+    task: PromptTaskType,
+    expenseData: any,
+    userData: any,
+    options: UserRecommendationsRequest
+  ): UserMessage {
+    let content = this.createTaskPrompt(task, expenseData, userData, options);
+
+    // Add expected format for specific tasks
+    if (task === 'weekly-report') {
+      content += '\n\nPlease respond in the following JSON format:\n';
+      content += this.getWeeklyReportFormat();
+    } else if (task === 'overall-report') {
+      content += '\n\nPlease respond in the following JSON format:\n';
+      content += '{"message": "Hello World - Overall report placeholder"}';
+    }
+
+    return {
+      content,
+      timestamp: new Date()
+    };
+  }
+
+  /**
+   * Create task-specific prompt content
+   */
+  private createTaskPrompt(
+    task: PromptTaskType,
+    expenseData: any,
+    userData: any,
+    options: UserRecommendationsRequest
+  ): string {
+    let content = '';
+
+    switch (task) {
+      case 'weekly-report':
+        content = 'Consider the last 7 days. Highlight emotional drivers: categories with strongly negative avg. emotion (≤ -3) and strongly positive avg. emotion (≥ +3). Mark outliers (≥ P95 of the last 6 weeks or > 2× category average).\n\n';
+        break;
+
+      case 'overall-report':
+        content = 'Create an overall financial report for the user.\n\n';
+        break;
+
+      default:
+        content = 'Analyze the provided data and create a report.\n\n';
+        break;
+    }
+
+    // Add expense data
+    if (expenseData && Array.isArray(expenseData) && expenseData.length > 0) {
+      content += `Expense Data:\n${JSON.stringify(expenseData, null, 2)}\n\n`;
+    } else {
+      content += `Expense Data: No data available\n\n`;
+    }
+
+    // Add user data if available
+    if (userData) {
+      content += `User Profile:\n${JSON.stringify(userData, null, 2)}\n\n`;
+    }
+
+    // Add date range if specified
+    if (options.startDate && options.endDate) {
+      content += `Analysis Period: ${options.startDate} to ${options.endDate}\n\n`;
+    }
+
+    return content;
+  }
+
+  /**
+   * Get the expected format for weekly report
+   */
+  private getWeeklyReportFormat(): string {
+    return `{
+  "report_period": {
+    "start": "YYYY-MM-DD",
+    "end": "YYYY-MM-DD"
+  },
+  "kpis": {
+    "total_expenses_eur": 0.0,
+    "avg_expense_eur": 0.0,
+    "transactions_count": 0,
+    "top_categories": [
+      {"category": "Category Name", "amount_eur": 0.0}
+    ],
+    "highest_emotion_day": {
+      "date": "YYYY-MM-DD",
+      "avg_emotion": 0.0
+    },
+    "lowest_emotion_day": {
+      "date": "YYYY-MM-DD",
+      "avg_emotion": 0.0
+    }
+  },
+  "emotional_drivers": {
+    "strongly_negative": [
+      {"category": "Category Name", "avg_emotion": 0.0}
+    ],
+    "strongly_positive": [
+      {"category": "Category Name", "avg_emotion": 0.0}
+    ]
+  },
+  "outliers": [
+    {
+      "date": "YYYY-MM-DD",
+      "category": "Category Name",
+      "amount_eur": 0.0,
+      "reason": "reason description"
+    }
+  ],
+  "insights": {
+    "what_stood_out": [
+      "First insight bullet point",
+      "Second insight bullet point", 
+      "Third insight bullet point"
+    ]
+  }
+}`;
   }
 }
