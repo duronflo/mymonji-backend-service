@@ -531,6 +531,17 @@
   border-color: #ccc;
 }
 
+.btn-info {
+  background: #17a2b8;
+  color: white;
+  border: 2px solid #17a2b8;
+}
+
+.btn-info:hover:not(:disabled) {
+  background: #138496;
+  border-color: #117a8b;
+}
+
 /* Result Display Styles */
 .result {
   background: #f8f9fa;

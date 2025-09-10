@@ -67,6 +67,17 @@ export class ApiService {
     });
   }
 
+  static async getMultiPromptAnalysis(uid: string, request?: UserRecommendationsRequest): Promise<ApiResponse<UserRecommendationsResponse>> {
+    return this.makeRequest<UserRecommendationsResponse>(`/user/${uid}/multi-prompt-analysis`, {
+      method: 'POST',
+      body: JSON.stringify(request || {}),
+    });
+  }
+
+  static async getAllUsers(): Promise<ApiResponse<Array<{uid: string, email: string}>>> {
+    return this.makeRequest<Array<{uid: string, email: string}>>('/users');
+  }
+
 
   static async startBatchJob(request?: BatchJobRequest): Promise<ApiResponse<BatchJobResponse>> {
     return this.makeRequest<BatchJobResponse>('/batch/run', {

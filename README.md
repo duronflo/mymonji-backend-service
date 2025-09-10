@@ -125,9 +125,35 @@ yarn test --coverage
 
 ---
 
-## API Endpoints
+## API Documentation
 
-### POST `/api/chat/send-message`
+The MyMonji Backend Service provides comprehensive RESTful API endpoints for OpenAI integration, Firebase data management, and multi-prompt analysis capabilities.
+
+### Base URL
+```
+http://localhost:3001
+```
+
+### Authentication
+Currently, no authentication is required. Future versions may implement API key authentication.
+
+### Response Format
+All API endpoints return responses in the following format:
+
+```json
+{
+  "success": boolean,
+  "data": any | null,
+  "error": string | null,
+  "message": string | null
+}
+```
+
+---
+
+### Chat/OpenAI Endpoints
+
+#### POST `/api/chat/send-message`
 Send a message to OpenAI with system specification.
 
 **Request Body:**
@@ -135,7 +161,7 @@ Send a message to OpenAI with system specification.
 {
   "systemSpec": {
     "role": "string",
-    "background": "string",
+    "background": "string", 
     "rules": ["string"],
     "personality": "string"
   },
@@ -155,7 +181,7 @@ Send a message to OpenAI with system specification.
     "timestamp": "Date",
     "usage": {
       "promptTokens": "number",
-      "completionTokens": "number",
+      "completionTokens": "number", 
       "totalTokens": "number"
     },
     "model": "string"
@@ -163,11 +189,358 @@ Send a message to OpenAI with system specification.
 }
 ```
 
-### POST `/api/chat/validate-key`
+#### POST `/api/chat/validate-key`
 Validate OpenAI API key.
 
-### GET `/api/chat/health`
+**Request Body:**
+```json
+{
+  "apiKey": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "valid": boolean
+  }
+}
+```
+
+#### GET `/health`
 Health check endpoint.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "uptime": 12345
+  }
+}
+```
+
+---
+
+### Firebase/User Management Endpoints
+
+#### GET `/users`
+Get all users with their basic information (uid and email).
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "uid": "string",
+      "email": "string"
+    }
+  ],
+  "message": "Retrieved X users successfully"
+}
+```
+
+#### POST `/user/:uid/recommendations`
+Generate personalized financial recommendations for a specific user.
+
+**URL Parameters:**
+- `uid` (string, required): User ID
+
+**Request Body:**
+```json
+{
+  "startDate": "YYYY-MM-DD" | null,
+  "endDate": "YYYY-MM-DD" | null,
+  "includeDebugInfo": boolean,
+  "task": "weekly-report" | "overall-report" | null,
+  "tasks": ["weekly-report", "overall-report"] | null
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "uid": "string",
+    "recommendations": [
+      {
+        "category": "string",
+        "advice": "string"
+      }
+    ],
+    "taskResults": [
+      {
+        "type": "weekly-report" | "overall-report",
+        "content": "string",
+        "usage": {
+          "promptTokens": "number",
+          "completionTokens": "number",
+          "totalTokens": "number"
+        },
+        "model": "string",
+        "timestamp": "Date"
+      }
+    ],
+    "debug": {
+      "firebaseUserData": "any",
+      "firebaseExpenseData": "any[]",
+      "openaiResponse": "string",
+      "openaiInput": "any",
+      "openaiUsage": {
+        "promptTokens": "number",
+        "completionTokens": "number",
+        "totalTokens": "number"
+      },
+      "processingTime": "number",
+      "multiPromptInputs": "any[]",
+      "multiPromptOutputs": "any[]",
+      "totalUsage": {
+        "promptTokens": "number",
+        "completionTokens": "number",
+        "totalTokens": "number"
+      }
+    }
+  }
+}
+```
+
+#### POST `/user/:uid/multi-prompt-analysis`
+Generate multi-prompt analysis for a specific user with selected task. **This is the dedicated endpoint for clear multi-prompt API calls.**
+
+**URL Parameters:**
+- `uid` (string, required): User ID
+
+**Request Body:**
+```json
+{
+  "task": "weekly-report" | "overall-report",
+  "tasks": ["weekly-report", "overall-report"],
+  "startDate": "YYYY-MM-DD" | null,
+  "endDate": "YYYY-MM-DD" | null,
+  "includeDebugInfo": boolean
+}
+```
+
+**Note:** Either `task` or `tasks` parameter is required for this endpoint.
+
+**Response:** Same format as `/user/:uid/recommendations`
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3001/user/abc123/multi-prompt-analysis \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "weekly-report",
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-07",
+    "includeDebugInfo": true
+  }'
+```
+
+---
+
+### Batch Processing Endpoints
+
+#### POST `/batch/run`
+Start a batch job to process all users.
+
+**Request Body:**
+```json
+{
+  "startDate": "YYYY-MM-DD" | null,
+  "endDate": "YYYY-MM-DD" | null,
+  "includeDebugInfo": boolean
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "started",
+    "jobId": "string"
+  }
+}
+```
+
+#### GET `/batch/:jobId/status`
+Get the status of a batch job.
+
+**URL Parameters:**
+- `jobId` (string, required): Batch job ID
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "string",
+    "status": "pending" | "running" | "completed" | "failed",
+    "processedUsers": "number",
+    "durationSec": "number",
+    "debug": {
+      "sampleFirebaseUserData": "any",
+      "sampleFirebaseExpenseData": "any[]",
+      "sampleOpenaiResponse": "string",
+      "sampleOpenaiInput": "any",
+      "sampleOpenaiUsage": {
+        "promptTokens": "number",
+        "completionTokens": "number",
+        "totalTokens": "number"
+      },
+      "totalUsers": "number",
+      "processingErrors": ["string"]
+    }
+  }
+}
+```
+
+---
+
+### Multi-Prompt Task Types
+
+The system supports the following task types for multi-prompt analysis:
+
+#### `weekly-report`
+Analyzes the last 7 days of expense data with the following specifications:
+- Highlights emotional drivers: categories with strongly negative avg. emotion (≤ -3) and strongly positive avg. emotion (≥ +3)
+- Marks outliers (≥ P95 of the last 6 weeks or > 2× category average)
+- Delivers "What stood out?" as 3 bullet points
+- Returns structured JSON with detailed financial KPIs
+
+**Expected Response Format:**
+```json
+{
+  "report_period": {
+    "start": "YYYY-MM-DD",
+    "end": "YYYY-MM-DD"
+  },
+  "kpis": {
+    "total_expenses_eur": "number",
+    "avg_expense_eur": "number",
+    "transactions_count": "number",
+    "top_categories": [
+      {"category": "string", "amount_eur": "number"}
+    ],
+    "highest_emotion_day": {
+      "date": "YYYY-MM-DD",
+      "avg_emotion": "number"
+    },
+    "lowest_emotion_day": {
+      "date": "YYYY-MM-DD", 
+      "avg_emotion": "number"
+    }
+  },
+  "emotional_drivers": {
+    "strongly_negative": [
+      {"category": "string", "avg_emotion": "number"}
+    ],
+    "strongly_positive": [
+      {"category": "string", "avg_emotion": "number"}
+    ]
+  },
+  "outliers": [
+    {
+      "date": "YYYY-MM-DD",
+      "category": "string",
+      "amount_eur": "number",
+      "reason": "string"
+    }
+  ],
+  "insights": {
+    "what_stood_out": [
+      "string",
+      "string", 
+      "string"
+    ]
+  }
+}
+```
+
+#### `overall-report`
+Creates an overall financial report using the same role and context as weekly report. Currently implemented as a HelloWorld placeholder:
+
+**Expected Response Format:**
+```json
+{
+  "message": "Hello World - Overall report placeholder"
+}
+```
+
+---
+
+### Error Handling
+
+All endpoints return appropriate HTTP status codes:
+
+- `200 OK`: Successful request
+- `400 Bad Request`: Invalid request parameters
+- `404 Not Found`: Resource not found (user, batch job, etc.)
+- `500 Internal Server Error`: Server error
+- `503 Service Unavailable`: Firebase not configured
+
+**Error Response Format:**
+```json
+{
+  "success": false,
+  "error": "Error description",
+  "message": "HTTP status message"
+}
+```
+
+---
+
+### Rate Limiting
+
+The API implements rate limiting to prevent abuse:
+- **Window**: 15 minutes (900,000ms)
+- **Max Requests**: 100 per window per IP
+- **Headers**: Rate limit info included in response headers
+
+---
+
+### Usage Examples
+
+#### Get User Recommendations
+```bash
+curl -X POST http://localhost:3001/user/abc123/recommendations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-31", 
+    "includeDebugInfo": true
+  }'
+```
+
+#### Get Weekly Report Analysis
+```bash
+curl -X POST http://localhost:3001/user/abc123/multi-prompt-analysis \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "weekly-report",
+    "includeDebugInfo": false
+  }'
+```
+
+#### Get All Users
+```bash
+curl http://localhost:3001/users
+```
+
+#### Start Batch Job
+```bash
+curl -X POST http://localhost:3001/batch/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "includeDebugInfo": true
+  }'
+```
 
 ---
 

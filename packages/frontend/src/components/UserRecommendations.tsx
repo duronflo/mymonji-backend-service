@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { ApiService } from '../services/api.service';
-import type { UserRecommendationsRequest, UserRecommendationsResponse, Recommendation } from '../types/index';
+import type { UserRecommendationsRequest, UserRecommendationsResponse, Recommendation, PromptTaskType } from '../types/index';
 
 export function UserRecommendations() {
   const [uid, setUid] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [selectedTask, setSelectedTask] = useState<PromptTaskType>('weekly-report');
   const [includeDebugInfo, setIncludeDebugInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMultiPrompt, setIsLoadingMultiPrompt] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [result, setResult] = useState<string>('');
   const [multiPromptResult, setMultiPromptResult] = useState<string>('');
+  const [usersResult, setUsersResult] = useState<string>('');
   const [debugData, setDebugData] = useState<any>(null);
   const [multiPromptDebugData, setMultiPromptDebugData] = useState<any>(null);
 
@@ -97,32 +100,28 @@ export function UserRecommendations() {
       if (startDate) request.startDate = startDate;
       if (endDate) request.endDate = endDate;
       if (includeDebugInfo) request.includeDebugInfo = true;
-      // Add task parameters for multi-prompt functionality
-      request.tasks = ['weekly-report', 'overall-report'];
+      // Use selected task instead of hard-coded tasks
+      request.task = selectedTask;
 
-      const response = await ApiService.getUserRecommendations(uid, request);
+      const response = await ApiService.getMultiPromptAnalysis(uid, request);
       
       if (response.success && response.data) {
         const data = response.data;
-        let resultText = `✅ Multi-Prompt Analysis Generated Successfully\nUser ID: ${data.uid}\n\n`;
+        let resultText = `✅ Multi-Prompt Analysis Generated Successfully\nUser ID: ${data.uid}\nTask: ${selectedTask}\n\n`;
         
         // Show basic recommendations
         if (data.recommendations && data.recommendations.length > 0) {
-          resultText += `Recommendations from Weekly Report:\n`;
+          resultText += `Recommendations from ${selectedTask}:\n`;
           data.recommendations.forEach((rec: Recommendation, index: number) => {
             resultText += `\n${index + 1}. ${rec.category}: ${rec.advice}\n`;
           });
-
-          if (data.debug && data.debug.totalUsage) {
-            resultText += `\nTotal Usage: ${data.debug.totalUsage.totalTokens} tokens\n`;
-          }
         } else {
           resultText += 'No recommendations found for this user.\n';
         }
 
         // Show multi-prompt results
         if (data.taskResults && data.taskResults.length > 0) {
-          resultText += `\n\nMulti-Prompt Analysis Results:\n`;
+          resultText += `\n\nTask Analysis Results:\n`;
           
           data.taskResults.forEach((result: any, index: number) => {
             resultText += `\n--- Task ${index + 1}: ${result.type} ---\n`;
@@ -138,10 +137,6 @@ export function UserRecommendations() {
                   parsedContent.insights.what_stood_out.forEach((insight: string, i: number) => {
                     resultText += `  ${i + 1}. ${insight}\n`;
                   });
-
-          if (data.debug && data.debug.totalUsage) {
-            resultText += `\nTotal Usage: ${data.debug.totalUsage.totalTokens} tokens\n`;
-          }
                 }
               } else {
                 resultText += `${JSON.stringify(parsedContent, null, 2)}\n`;
@@ -168,7 +163,7 @@ export function UserRecommendations() {
           setMultiPromptDebugData(data.debug);
         }
       } else {
-        setMultiPromptResult(`❌ Failed to get recommendations with task-based analysis: ${response.error || 'Unknown error'}`);
+        setMultiPromptResult(`❌ Failed to get multi-prompt analysis: ${response.error || 'Unknown error'}`);
       }
 
       // Check for debug data even if request failed
@@ -179,6 +174,38 @@ export function UserRecommendations() {
       setMultiPromptResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoadingMultiPrompt(false);
+    }
+  };
+
+  const getAllUsers = async () => {
+    setIsLoadingUsers(true);
+    setUsersResult('');
+
+    try {
+      const response = await ApiService.getAllUsers();
+      
+      if (response.success && response.data) {
+        const users = response.data;
+        let resultText = `✅ Retrieved ${users.length} users successfully\n\n`;
+        
+        // Create table format
+        resultText += `${'UID'.padEnd(20)} | Email\n`;
+        resultText += `${'-'.repeat(20)} | ${'-'.repeat(40)}\n`;
+        
+        users.forEach(user => {
+          const uid = user.uid.padEnd(20);
+          const email = user.email || 'N/A';
+          resultText += `${uid} | ${email}\n`;
+        });
+        
+        setUsersResult(resultText);
+      } else {
+        setUsersResult(`❌ Failed to get users: ${response.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      setUsersResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoadingUsers(false);
     }
   };
 
@@ -222,6 +249,19 @@ export function UserRecommendations() {
       </div>
 
       <div className="form-group">
+        <label htmlFor="selectedTask">Task for Multi-Prompt Analysis:</label>
+        <select
+          id="selectedTask"
+          value={selectedTask}
+          onChange={(e) => setSelectedTask(e.target.value as PromptTaskType)}
+          className="form-input"
+        >
+          <option value="weekly-report">Weekly Report</option>
+          <option value="overall-report">Overall Report</option>
+        </select>
+      </div>
+
+      <div className="form-group">
         <label>
           <input
             type="checkbox"
@@ -233,22 +273,31 @@ export function UserRecommendations() {
         </label>
       </div>
       
-      <button 
-        onClick={getRecommendations} 
-        disabled={isLoading}
-        className="btn btn-primary"
-      >
-        {isLoading ? 'Generating...' : 'Get Recommendations'}
-      </button>
+      <div className="button-group" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <button 
+          onClick={getRecommendations} 
+          disabled={isLoading}
+          className="btn btn-primary"
+        >
+          {isLoading ? 'Generating...' : 'Get Recommendations'}
+        </button>
 
-      <button 
-        onClick={getMultiPromptAnalysis} 
-        disabled={isLoadingMultiPrompt}
-        className="btn btn-secondary"
-        style={{ marginLeft: '10px' }}
-      >
-        {isLoadingMultiPrompt ? 'Analyzing...' : 'Get Multi-Prompt Analysis'}
-      </button>
+        <button 
+          onClick={getMultiPromptAnalysis} 
+          disabled={isLoadingMultiPrompt}
+          className="btn btn-secondary"
+        >
+          {isLoadingMultiPrompt ? 'Analyzing...' : `Get ${selectedTask.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} Analysis`}
+        </button>
+
+        <button 
+          onClick={getAllUsers} 
+          disabled={isLoadingUsers}
+          className="btn btn-info"
+        >
+          {isLoadingUsers ? 'Loading...' : 'Get All Users'}
+        </button>
+      </div>
       
       {result && (
         <div className="result">
@@ -260,6 +309,13 @@ export function UserRecommendations() {
         <div className="result" style={{ marginTop: '20px' }}>
           <h4>📊 Multi-Prompt Analysis Results</h4>
           <pre>{multiPromptResult}</pre>
+        </div>
+      )}
+
+      {usersResult && (
+        <div className="result" style={{ marginTop: '20px' }}>
+          <h4>👥 All Users</h4>
+          <pre>{usersResult}</pre>
         </div>
       )}
 
