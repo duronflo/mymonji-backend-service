@@ -1,0 +1,72 @@
+# Multi-stage Dockerfile for MyMonji Backend with Bun
+# This builds a production-ready Docker image using Bun
+
+# Stage 1: Dependencies
+FROM oven/bun:1 AS deps
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lockb* ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/backend/package.json ./packages/backend/
+
+# Install dependencies
+RUN bun install --frozen-lockfile --production=false
+
+# Stage 2: Builder
+FROM oven/bun:1 AS builder
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/backend/node_modules ./packages/backend/node_modules
+
+# Copy source code
+COPY packages/shared ./packages/shared
+COPY packages/backend ./packages/backend
+COPY package.json bun.lockb* ./
+
+# Build shared types
+WORKDIR /app/packages/shared
+RUN bun run build
+
+# Build backend
+WORKDIR /app/packages/backend
+RUN bun run build
+
+# Stage 3: Production runner
+FROM oven/bun:1-slim AS runner
+
+WORKDIR /app
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 bunuser
+
+# Copy built artifacts
+COPY --from=builder --chown=bunuser:nodejs /app/packages/backend/dist ./dist
+COPY --from=builder --chown=bunuser:nodejs /app/packages/shared/dist ./shared/dist
+COPY --from=builder --chown=bunuser:nodejs /app/packages/backend/package.json ./package.json
+
+# Copy only production dependencies
+COPY --from=builder --chown=bunuser:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=bunuser:nodejs /app/packages/backend/node_modules ./node_modules
+
+# Switch to non-root user
+USER bunuser
+
+# Expose port
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD bun run -e 'fetch("http://localhost:3001/health").then(r => r.ok ? process.exit(0) : process.exit(1))'
+
+# Set environment to production
+ENV NODE_ENV=production
+
+# Start the application
+CMD ["bun", "run", "dist/index.js"]

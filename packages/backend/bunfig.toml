@@ -1,0 +1,25 @@
+# Backend-specific Bun Configuration
+
+[test]
+# Test configuration for backend
+preload = ["./src/tests/setup.ts"]
+root = "./src"
+
+# Use Bun's built-in test runner
+# Tests will automatically pick up files matching:
+# - **/*.test.ts
+# - **/*.test.tsx
+# - **/*.spec.ts
+# - **/*.spec.tsx
+
+[test.coverage]
+# Code coverage settings
+enabled = true
+reporter = ["text", "lcov", "html"]
+dir = "./coverage"
+exclude = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/*.test.ts",
+  "**/*.spec.ts",
+]
