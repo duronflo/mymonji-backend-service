@@ -4,11 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bunx --bun vite",
-    "build": "bun build:tsc && bunx --bun vite build",
-    "build:tsc": "tsc -b",
+    "dev": "bunx vite",
+    "build": "tsc -b && bunx vite build",
     "lint": "eslint .",
-    "preview": "bunx --bun vite preview"
+    "preview": "bunx vite preview"
   },
   "dependencies": {
     "@mymonji/shared": "file:../shared",

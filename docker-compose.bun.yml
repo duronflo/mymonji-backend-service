@@ -13,7 +13,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV:-development}
       - PORT=3001
       # Add other environment variables from .env file
       - OPENAI_API_KEY=${OPENAI_API_KEY}

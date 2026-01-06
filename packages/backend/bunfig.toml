@@ -2,10 +2,6 @@
 
 [test]
 # Test configuration for backend
-preload = ["./src/tests/setup.ts"]
-root = "./src"
-
-# Use Bun's built-in test runner
 # Tests will automatically pick up files matching:
 # - **/*.test.ts
 # - **/*.test.tsx
