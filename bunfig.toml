@@ -1,0 +1,37 @@
+# Bun Configuration File
+# https://bun.sh/docs/runtime/bunfig
+
+[install]
+# Configure package installation behavior
+# Use npm registry as default
+registry = "https://registry.npmjs.org/"
+
+# Optimize installation
+cache = true
+lockfile = true
+exact = false
+
+# Install strategy
+production = false
+dev = true
+optional = true
+peer = true
+
+[install.scopes]
+# Configure scoped package registries if needed
+
+[test]
+# Test runner configuration
+preload = []
+# Use default test setup
+coverage = true
+coverageDir = "coverage"
+coverageReporter = ["text", "lcov", "html"]
+
+[run]
+# Runtime configuration
+# Use .env files automatically
+shell = "/bin/sh"
+
+# Prefer Bun's native implementations
+bun = true

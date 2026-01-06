@@ -1,16 +1,38 @@
 # MyMonji Backend Service
 
 Monorepo for:
-- **Backend:** Node.js microservice (Express, Firebase, OpenAI)
+- **Backend:** Bun/TypeScript microservice (Express, Firebase, OpenAI)
 - **Frontend:** React visualization page
+
+> **⚡ Now powered by Bun!** This project has been migrated from Node.js/npm/yarn to [Bun](https://bun.sh) for faster development, testing, and deployment.
+
+## 📚 Documentation
+
+- **[QUICK_START.md](./QUICK_START.md)** - Get started in 5 minutes
+- **[BUN_MIGRATION.md](./BUN_MIGRATION.md)** - Complete migration guide and Bun documentation
+- **[COMMAND_REFERENCE.md](./COMMAND_REFERENCE.md)** - Quick command reference (npm/yarn → bun)
+- **[MIGRATION_CHECKLIST.md](./MIGRATION_CHECKLIST.md)** - Step-by-step migration checklist
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+ recommended)
-- [Yarn](https://yarnpkg.com/) (`npm install -g yarn`)
+- [Bun](https://bun.sh/) (v1.0+) - Fast all-in-one JavaScript runtime
 - [OpenAI API Key](https://platform.openai.com/api-keys)
+
+#### Installing Bun
+
+**macOS, Linux & WSL:**
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+**Verify installation:**
+```bash
+bun --version
+```
+
+> **Note:** Bun replaces Node.js, npm, yarn, ts-node, nodemon, and Jest in this project.
 
 ### Environment Setup
 
@@ -46,8 +68,22 @@ Monorepo for:
 ### Install Dependencies
 
 ```bash
-yarn install
+bun install
 ```
+
+This installs dependencies for all workspace packages.
+
+> **⚡ Performance:** Bun installs packages 10-25x faster than npm/yarn (typically 5-10 seconds vs 30-60 seconds)
+
+### Verify Setup
+
+Run the verification script to ensure everything is configured correctly:
+
+```bash
+bun run verify-setup.ts
+```
+
+This checks Bun installation, dependencies, environment files, and build artifacts.
 
 ### Development
 
@@ -55,16 +91,18 @@ yarn install
 
 ```bash
 cd packages/backend
-yarn dev
+bun run dev
 ```
 
 The backend server will start on `http://localhost:3001` (or the port specified in your `.env` file).
+
+> **Bun's watch mode** automatically reloads on file changes - no need for nodemon!
 
 #### Frontend
 
 ```bash
 cd packages/frontend
-npm run dev
+bun run dev
 ```
 
 The frontend will start on `http://localhost:3000`.
@@ -75,16 +113,16 @@ The frontend will start on `http://localhost:3000`.
 
 ```bash
 cd packages/backend
-yarn build
-yarn start
+bun run build
+bun run start
 ```
 
 #### Frontend
 
 ```bash
 cd packages/frontend
-npm run build
-npm run preview
+bun run build
+bun run preview
 ```
 
 ### Testing
@@ -93,13 +131,20 @@ npm run preview
 
 ```bash
 cd packages/backend
-yarn test
+bun test
 ```
 
 Run tests with coverage:
 ```bash
-yarn test --coverage
+bun test --coverage
 ```
+
+Run tests in watch mode:
+```bash
+bun test --watch
+```
+
+> **Bun's built-in test runner** is Jest-compatible and 2-3x faster than Jest.
 
 ---
 
@@ -205,18 +250,19 @@ Health check endpoint.
 ## Technology Stack
 
 ### Backend
-- **Node.js** with **Express.js** - Web server framework
+- **Bun** - Fast all-in-one JavaScript runtime & toolkit
+- **Express.js** - Web server framework
 - **TypeScript** - Type safety and modern JavaScript features
 - **OpenAI SDK** - Official OpenAI API integration
-- **Jest** - Testing framework with coverage reporting
+- **Bun Test** - Built-in fast test runner with Jest compatibility
 - **CORS** - Cross-origin resource sharing
 - **Helmet** - Security middleware
 - **Rate Limiting** - API abuse prevention
 
 ### Frontend
-- **React 18** - Modern React with hooks
+- **React 19** - Modern React with hooks
 - **TypeScript** - Full type safety
-- **Vite** - Fast build tool and dev server
+- **Vite** - Fast build tool and dev server (runs via Bun)
 - **Modern CSS** - Custom responsive design with gradients
 - **ESLint** - Code linting and quality
 
@@ -261,12 +307,47 @@ All code uses TypeScript with strict mode enabled. Shared types between frontend
 
 4. **Build Issues**
    - Delete `node_modules` and reinstall dependencies
-   - Clear Vite cache: `rm -rf node_modules/.vite`
+   - Clear Bun cache: `rm -rf ~/.bun/install/cache`
 
 ### Support
 
 For issues and questions, please check the following:
 1. Ensure all environment variables are properly configured
-2. Verify that all dependencies are installed (`yarn install`)
+2. Verify that all dependencies are installed (`bun install`)
 3. Check that both backend and frontend servers are running
 4. Review the console for any error messages
+
+---
+
+## Why Bun?
+
+This project has been migrated to Bun for significant performance and developer experience improvements:
+
+### Performance Benefits
+- **10-25x faster** package installation (5-10s vs 30-60s)
+- **2-3x faster** test execution
+- **Instant** TypeScript execution (no compilation needed for development)
+- **Lower** memory usage
+
+### Developer Experience
+- **All-in-one toolkit**: Runtime, package manager, test runner, and bundler
+- **Zero configuration**: TypeScript and JSX work out of the box
+- **Built-in watch mode**: No need for nodemon or similar tools
+- **Jest-compatible**: Existing tests work with minimal changes
+
+### Learn More
+- [BUN_MIGRATION.md](./BUN_MIGRATION.md) - Complete migration guide and documentation
+- [Bun Documentation](https://bun.sh/docs) - Official Bun documentation
+- [Bun GitHub](https://github.com/oven-sh/bun) - Source code and issues
+
+### Quick Command Reference
+
+| Task | Bun Command |
+|------|-------------|
+| Install dependencies | `bun install` |
+| Run dev server | `bun run dev` |
+| Run tests | `bun test` |
+| Build project | `bun run build` |
+| Run production | `bun run start` |
+
+> **Migration Note**: All previous npm/yarn commands have been replaced with Bun equivalents. The project no longer requires Node.js, npm, yarn, ts-node, nodemon, or Jest to be installed separately.
