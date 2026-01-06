@@ -32,9 +32,8 @@ if (lockFileExists) {
 }
 
 // Check if node_modules exists
-const nodeModulesPackageExists = await Bun.file("node_modules/.package-lock.json").exists() 
-  || await Bun.file("node_modules/package-lock.json").exists()
-  || await Bun.file("node_modules/.bin").exists();
+const nodeModulesPackageExists = await Bun.file("node_modules/.bin/vite").exists()
+  || await Bun.file("node_modules/.bin/tsc").exists();
 if (nodeModulesPackageExists) {
   console.log("✅ node_modules directory found");
 } else {
