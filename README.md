@@ -4,7 +4,14 @@ Monorepo for:
 - **Backend:** Bun/TypeScript microservice (Express, Firebase, OpenAI)
 - **Frontend:** React visualization page
 
-> **⚡ Now powered by Bun!** This project has been migrated from Node.js/npm/yarn to [Bun](https://bun.sh) for faster development, testing, and deployment. See [BUN_MIGRATION.md](./BUN_MIGRATION.md) for complete migration details.
+> **⚡ Now powered by Bun!** This project has been migrated from Node.js/npm/yarn to [Bun](https://bun.sh) for faster development, testing, and deployment.
+
+## 📚 Documentation
+
+- **[QUICK_START.md](./QUICK_START.md)** - Get started in 5 minutes
+- **[BUN_MIGRATION.md](./BUN_MIGRATION.md)** - Complete migration guide and Bun documentation
+- **[COMMAND_REFERENCE.md](./COMMAND_REFERENCE.md)** - Quick command reference (npm/yarn → bun)
+- **[MIGRATION_CHECKLIST.md](./MIGRATION_CHECKLIST.md)** - Step-by-step migration checklist
 
 ## Getting Started
 
@@ -67,6 +74,16 @@ bun install
 This installs dependencies for all workspace packages.
 
 > **⚡ Performance:** Bun installs packages 10-25x faster than npm/yarn (typically 5-10 seconds vs 30-60 seconds)
+
+### Verify Setup
+
+Run the verification script to ensure everything is configured correctly:
+
+```bash
+bun run verify-setup.ts
+```
+
+This checks Bun installation, dependencies, environment files, and build artifacts.
 
 ### Development
 
