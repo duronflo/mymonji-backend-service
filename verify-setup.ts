@@ -74,7 +74,7 @@ console.log("=".repeat(60));
 
 const checks = [
   { name: "Bun installed", passed: true },
-  { name: "Dependencies installed", passed: lockFileExists && nodeModulesExists },
+  { name: "Dependencies installed", passed: lockFileExists && nodeModulesPackageExists },
   { name: "Environment configured", passed: backendEnvExists && frontendEnvExists },
   { name: "Shared package built", passed: sharedDistExists }
 ];
