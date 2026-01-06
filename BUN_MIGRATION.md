@@ -120,11 +120,10 @@ The following changes were made during migration:
 ```json
 {
   "scripts": {
-    "dev": "bunx --bun vite",              // Changed from: vite
-    "build": "bun build:tsc && bunx --bun vite build", // Organized
-    "build:tsc": "tsc -b",                 // TypeScript compilation
+    "dev": "vite",                         // Changed from: vite (now runs via Bun)
+    "build": "tsc -b && vite build",       // Updated to use Bun runtime
     "lint": "eslint .",                    // Unchanged
-    "preview": "bunx --bun vite preview"   // Changed from: vite preview
+    "preview": "vite preview"              // Changed from: vite preview (now via Bun)
   }
 }
 ```
@@ -133,9 +132,8 @@ The following changes were made during migration:
 ```json
 {
   "scripts": {
-    "build": "bun build:tsc",              // Organized build process
-    "build:tsc": "tsc",                    // TypeScript compilation
-    "dev": "bun build:tsc --watch"         // Changed from: tsc --watch
+    "build": "tsc",                        // TypeScript compilation
+    "dev": "tsc --watch"                   // Changed from: tsc --watch (now via Bun)
   }
 }
 ```
