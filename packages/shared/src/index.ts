@@ -108,3 +108,38 @@ export interface BatchJobStatusResponse {
     processingErrors?: string[];
   };
 }
+
+// Prompt Management Types
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  description: string;
+  userPrompt: string;
+  category?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PromptConfig {
+  systemSpec: SystemSpecification;
+  templates: PromptTemplate[];
+}
+
+export interface CreatePromptTemplateRequest {
+  name: string;
+  description: string;
+  userPrompt: string;
+  category?: string;
+}
+
+export interface UpdatePromptTemplateRequest {
+  name?: string;
+  description?: string;
+  userPrompt?: string;
+  category?: string;
+}
+
+export interface ChatWithTemplateRequest {
+  templateId: string;
+  variables?: Record<string, string>;
+}

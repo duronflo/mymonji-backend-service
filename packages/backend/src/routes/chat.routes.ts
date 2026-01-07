@@ -1,8 +1,17 @@
 import { Router, Request, Response } from 'express';
 import { OpenAIService } from '../services/openai.service';
-import { SystemSpecification, UserMessage, OpenAIRequest, ApiResponse, OpenAIResponse } from '../types';
+import { PromptService } from '../services/prompt.service';
+import { 
+  SystemSpecification, 
+  UserMessage, 
+  OpenAIRequest, 
+  ApiResponse, 
+  OpenAIResponse,
+  ChatWithTemplateRequest 
+} from '../types';
 
 const router = Router();
+const promptService = PromptService.getInstance();
 
 // Initialize OpenAI service with error handling
 let openAIService: OpenAIService;
@@ -108,6 +117,70 @@ router.post('/validate-key', async (req: Request, res: Response<ApiResponse<bool
     res.status(500).json({
       success: false,
       error: 'Failed to validate API key',
+    });
+  }
+});
+
+/**
+ * POST /api/chat/send-with-template
+ * Sends a message using a prompt template
+ */
+router.post('/send-with-template', async (req: Request, res: Response<ApiResponse<OpenAIResponse>>) => {
+  try {
+    // Check if OpenAI service is available
+    if (!openAIService) {
+      return res.status(503).json({
+        success: false,
+        error: 'OpenAI service is not available. Please check your API key configuration.',
+      });
+    }
+
+    const { templateId, variables }: ChatWithTemplateRequest = req.body;
+
+    // Validate input
+    if (!templateId) {
+      return res.status(400).json({
+        success: false,
+        error: 'templateId is required',
+      });
+    }
+
+    // Get template
+    const template = promptService.getTemplate(templateId);
+    if (!template) {
+      return res.status(404).json({
+        success: false,
+        error: 'Prompt template not found',
+      });
+    }
+
+    // Get system specification
+    const systemSpec = promptService.getSystemSpec();
+
+    // Apply variables to template
+    const userMessageContent = promptService.applyVariables(template.userPrompt, variables);
+
+    const userMessage: UserMessage = {
+      content: userMessageContent,
+      timestamp: new Date(),
+    };
+
+    // Send message to OpenAI
+    const openAIResponse = await openAIService.sendMessage(systemSpec, userMessage);
+
+    res.json({
+      success: true,
+      data: openAIResponse,
+      message: 'Message sent successfully with template',
+    });
+  } catch (error) {
+    console.error('Error in send-with-template endpoint:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    res.status(500).json({
+      success: false,
+      error: errorMessage,
     });
   }
 });

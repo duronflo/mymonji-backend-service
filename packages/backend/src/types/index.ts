@@ -11,7 +11,12 @@ export {
   UserRecommendationsResponse,
   BatchJobRequest,
   BatchJobResponse,
-  BatchJobStatusResponse
+  BatchJobStatusResponse,
+  PromptTemplate,
+  PromptConfig,
+  CreatePromptTemplateRequest,
+  UpdatePromptTemplateRequest,
+  ChatWithTemplateRequest
 } from '@mymonji/shared';
 
 // Import types for internal use
