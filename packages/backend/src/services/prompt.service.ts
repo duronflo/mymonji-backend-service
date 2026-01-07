@@ -172,7 +172,7 @@ export class PromptService {
    * Generate a unique ID for templates
    */
   private generateId(): string {
-    return `prompt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `prompt-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**
