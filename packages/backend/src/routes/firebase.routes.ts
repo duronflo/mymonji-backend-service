@@ -17,10 +17,10 @@ const router = express.Router();
  * Generate recommendations for a specific user
  */
 router.post('/user/:uid/recommendations', async (req: Request, res: Response) => {
+  const { uid } = req.params;
+  const requestBody: UserRecommendationsRequest = req.body || {};
+  
   try {
-    const { uid } = req.params;
-    const requestBody: UserRecommendationsRequest = req.body || {};
-
     const recommendationService = RecommendationService.getInstance();
     const firebaseService = FirebaseService.getInstance();
 
