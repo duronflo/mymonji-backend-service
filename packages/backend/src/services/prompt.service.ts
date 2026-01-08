@@ -50,18 +50,66 @@ export class PromptService {
       {
         id: 'last-week-average',
         name: 'Last Week Average',
-        description: 'Ask about last week average statistics',
-        userPrompt: 'Can you tell me about my average spending from last week?',
+        description: 'Analyze average spending from the last 7 days with emotion insights',
+        userPrompt: 'Based on my expenses from the last 7 days, provide an analysis of my average spending and the emotions I felt. Identify patterns between spending amounts and my emotional state.',
         category: 'Statistics',
+        firebaseData: {
+          enabled: true,
+          dateRange: {
+            type: 'days',
+            value: 7
+          },
+          includeEmotions: true,
+          includeUserData: true
+        },
         createdAt: now,
         updatedAt: now
       },
       {
         id: 'monthly-summary',
         name: 'Monthly Summary',
-        description: 'Request a monthly financial summary',
-        userPrompt: 'Please provide a summary of my expenses for this month.',
+        description: 'Comprehensive monthly expense summary with emotion analysis',
+        userPrompt: 'Please provide a detailed summary of my expenses for this month. Include total spending, categories, and analyze the emotions associated with my purchases to help me understand my spending habits.',
         category: 'Statistics',
+        firebaseData: {
+          enabled: true,
+          dateRange: {
+            type: 'months',
+            value: 1
+          },
+          includeEmotions: true,
+          includeUserData: true
+        },
+        schedule: {
+          enabled: true,
+          cronExpression: '0 0 1 * *', // First day of each month at midnight
+          timezone: 'UTC',
+          runForAllUsers: true
+        },
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: 'weekly-emotion-insights',
+        name: 'Weekly Emotion Insights',
+        description: 'Weekly analysis of spending patterns and emotional well-being',
+        userPrompt: 'Analyze my spending from the past week and identify which expenses made me feel positive versus negative. Provide recommendations for maintaining financial well-being while prioritizing emotionally fulfilling purchases.',
+        category: 'Insights',
+        firebaseData: {
+          enabled: true,
+          dateRange: {
+            type: 'weeks',
+            value: 1
+          },
+          includeEmotions: true,
+          includeUserData: true
+        },
+        schedule: {
+          enabled: true,
+          cronExpression: '0 0 * * 0', // Every Sunday at midnight
+          timezone: 'UTC',
+          runForAllUsers: true
+        },
         createdAt: now,
         updatedAt: now
       }

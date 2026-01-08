@@ -110,12 +110,33 @@ export interface BatchJobStatusResponse {
 }
 
 // Prompt Management Types
+export interface FirebaseDataConfig {
+  enabled: boolean;
+  dateRange?: {
+    type: 'days' | 'weeks' | 'months' | 'custom';
+    value?: number; // For days/weeks/months
+    startDate?: string; // For custom range (ISO format)
+    endDate?: string; // For custom range (ISO format)
+  };
+  includeEmotions?: boolean; // Include emotion data from expenses
+  includeUserData?: boolean; // Include user profile data
+}
+
+export interface ScheduleConfig {
+  enabled: boolean;
+  cronExpression?: string; // e.g., '0 0 * * 0' for weekly on Sunday at midnight
+  timezone?: string; // e.g., 'America/New_York'
+  runForAllUsers?: boolean; // Run for all users or specific users
+}
+
 export interface PromptTemplate {
   id: string;
   name: string;
   description: string;
   userPrompt: string;
   category?: string;
+  firebaseData?: FirebaseDataConfig; // Configuration for Firebase data inclusion
+  schedule?: ScheduleConfig; // Scheduling configuration
   createdAt: Date;
   updatedAt: Date;
 }
@@ -130,6 +151,8 @@ export interface CreatePromptTemplateRequest {
   description: string;
   userPrompt: string;
   category?: string;
+  firebaseData?: FirebaseDataConfig;
+  schedule?: ScheduleConfig;
 }
 
 export interface UpdatePromptTemplateRequest {
@@ -137,9 +160,22 @@ export interface UpdatePromptTemplateRequest {
   description?: string;
   userPrompt?: string;
   category?: string;
+  firebaseData?: FirebaseDataConfig;
+  schedule?: ScheduleConfig;
 }
 
 export interface ChatWithTemplateRequest {
   templateId: string;
   variables?: Record<string, string>;
+  userId?: string; // User ID for Firebase data retrieval
+}
+
+export interface ExecuteTemplateForAllUsersRequest {
+  templateId: string;
+}
+
+export interface ExecuteTemplateForAllUsersResponse {
+  jobId: string;
+  status: string;
+  totalUsers: number;
 }

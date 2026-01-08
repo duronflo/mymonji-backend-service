@@ -204,6 +204,31 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
               </div>
             </div>
             <p className="template-description">{template.description}</p>
+            
+            {/* Firebase Data Config */}
+            {template.firebaseData?.enabled && (
+              <div className="template-config">
+                <strong>📊 Firebase Data:</strong>
+                <span className="config-badge">
+                  {template.firebaseData.dateRange?.type === 'days' && `Last ${template.firebaseData.dateRange.value} days`}
+                  {template.firebaseData.dateRange?.type === 'weeks' && `Last ${template.firebaseData.dateRange.value} weeks`}
+                  {template.firebaseData.dateRange?.type === 'months' && `Last ${template.firebaseData.dateRange.value} months`}
+                  {template.firebaseData.includeEmotions && ' • With Emotions'}
+                </span>
+              </div>
+            )}
+
+            {/* Schedule Config */}
+            {template.schedule?.enabled && (
+              <div className="template-config">
+                <strong>⏰ Scheduled:</strong>
+                <span className="config-badge">
+                  {template.schedule.cronExpression}
+                  {template.schedule.runForAllUsers && ' • All Users'}
+                </span>
+              </div>
+            )}
+
             <div className="template-prompt">
               <strong>Prompt:</strong>
               <pre>{template.userPrompt}</pre>
@@ -399,6 +424,27 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
           color: #666;
           margin: 0 0 10px 0;
           font-size: 14px;
+        }
+
+        .template-config {
+          margin: 8px 0;
+          font-size: 13px;
+          color: #555;
+        }
+
+        .template-config strong {
+          display: inline-block;
+          margin-right: 8px;
+        }
+
+        .config-badge {
+          display: inline-block;
+          background: #e8f5e9;
+          color: #2e7d32;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 12px;
+          margin-left: 4px;
         }
 
         .template-prompt {

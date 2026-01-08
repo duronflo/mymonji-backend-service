@@ -1,16 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { PromptService } from '../services/prompt.service';
+import { TemplateExecutionService } from '../services/template-execution.service';
 import { 
   ApiResponse, 
   PromptConfig, 
   PromptTemplate,
   SystemSpecification,
   CreatePromptTemplateRequest,
-  UpdatePromptTemplateRequest
+  UpdatePromptTemplateRequest,
+  ExecuteTemplateForAllUsersRequest,
+  ExecuteTemplateForAllUsersResponse
 } from '../types';
 
 const router = Router();
 const promptService = PromptService.getInstance();
+const templateExecutionService = TemplateExecutionService.getInstance();
 
 /**
  * GET /api/prompts/config
@@ -232,6 +236,57 @@ router.delete('/templates/:id', (req: Request, res: Response<ApiResponse<{ delet
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete prompt template'
+    });
+  }
+});
+
+/**
+ * POST /api/prompts/templates/:id/execute-all
+ * Execute a template for all users (batch execution)
+ */
+router.post('/templates/:id/execute-all', async (req: Request, res: Response<ApiResponse<ExecuteTemplateForAllUsersResponse>>) => {
+  try {
+    const { id } = req.params;
+
+    const result = await templateExecutionService.executeTemplateForAllUsers(id);
+
+    res.status(202).json({
+      success: true,
+      data: result,
+      message: 'Template execution started for all users'
+    });
+  } catch (error) {
+    console.error('Error executing template for all users:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to execute template for all users'
+    });
+  }
+});
+
+/**
+ * GET /api/prompts/executions/:jobId
+ * Get status of a template execution job
+ */
+router.get('/executions/:jobId', async (req: Request, res: Response<ApiResponse<any>>) => {
+  try {
+    const { jobId } = req.params;
+
+    const status = templateExecutionService.getExecutionJobStatus(jobId);
+
+    res.json({
+      success: true,
+      data: status,
+      message: 'Execution job status retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Error getting execution job status:', error);
+    
+    const statusCode = error instanceof Error && error.message.includes('not found') ? 404 : 500;
+    
+    res.status(statusCode).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get execution job status'
     });
   }
 });

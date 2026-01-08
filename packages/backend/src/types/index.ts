@@ -16,7 +16,11 @@ export {
   PromptConfig,
   CreatePromptTemplateRequest,
   UpdatePromptTemplateRequest,
-  ChatWithTemplateRequest
+  ChatWithTemplateRequest,
+  FirebaseDataConfig,
+  ScheduleConfig,
+  ExecuteTemplateForAllUsersRequest,
+  ExecuteTemplateForAllUsersResponse
 } from '@mymonji/shared';
 
 // Import types for internal use

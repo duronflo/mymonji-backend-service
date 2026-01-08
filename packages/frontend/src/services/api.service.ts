@@ -12,7 +12,8 @@ import type {
   SystemSpecification,
   CreatePromptTemplateRequest,
   UpdatePromptTemplateRequest,
-  ChatWithTemplateRequest
+  ChatWithTemplateRequest,
+  ExecuteTemplateForAllUsersResponse
 } from '../types/index';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -126,6 +127,16 @@ export class ApiService {
     return this.makeRequest<{ deleted: boolean }>(`/api/prompts/templates/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  static async executeTemplateForAllUsers(templateId: string): Promise<ApiResponse<ExecuteTemplateForAllUsersResponse>> {
+    return this.makeRequest<ExecuteTemplateForAllUsersResponse>(`/api/prompts/templates/${templateId}/execute-all`, {
+      method: 'POST',
+    });
+  }
+
+  static async getExecutionJobStatus(jobId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>(`/api/prompts/executions/${jobId}`);
   }
 
   static async sendWithTemplate(request: ChatWithTemplateRequest): Promise<ApiResponse<OpenAIResponse>> {

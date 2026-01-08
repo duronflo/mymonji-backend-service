@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { OpenAIService } from '../services/openai.service';
 import { PromptService } from '../services/prompt.service';
+import { TemplateExecutionService } from '../services/template-execution.service';
 import { 
   SystemSpecification, 
   UserMessage, 
@@ -12,6 +13,7 @@ import {
 
 const router = Router();
 const promptService = PromptService.getInstance();
+const templateExecutionService = TemplateExecutionService.getInstance();
 
 // Initialize OpenAI service with error handling
 let openAIService: OpenAIService;
@@ -123,7 +125,7 @@ router.post('/validate-key', async (req: Request, res: Response<ApiResponse<bool
 
 /**
  * POST /api/chat/send-with-template
- * Sends a message using a prompt template
+ * Sends a message using a prompt template with optional Firebase data integration
  */
 router.post('/send-with-template', async (req: Request, res: Response<ApiResponse<OpenAIResponse>>) => {
   try {
@@ -135,7 +137,7 @@ router.post('/send-with-template', async (req: Request, res: Response<ApiRespons
       });
     }
 
-    const { templateId, variables }: ChatWithTemplateRequest = req.body;
+    const { templateId, variables, userId }: ChatWithTemplateRequest = req.body;
 
     // Validate input
     if (!templateId) {
@@ -145,7 +147,7 @@ router.post('/send-with-template', async (req: Request, res: Response<ApiRespons
       });
     }
 
-    // Get template
+    // If userId is provided and template has Firebase data config, use template execution service
     const template = promptService.getTemplate(templateId);
     if (!template) {
       return res.status(404).json({
@@ -154,19 +156,24 @@ router.post('/send-with-template', async (req: Request, res: Response<ApiRespons
       });
     }
 
-    // Get system specification
-    const systemSpec = promptService.getSystemSpec();
+    let openAIResponse: OpenAIResponse;
 
-    // Apply variables to template
-    const userMessageContent = promptService.applyVariables(template.userPrompt, variables);
+    if (userId && template.firebaseData?.enabled) {
+      // Use template execution service for Firebase data integration
+      openAIResponse = await templateExecutionService.executeTemplateForUser(templateId, userId, variables);
+    } else {
+      // Simple template execution without Firebase data
+      const systemSpec = promptService.getSystemSpec();
+      const userMessageContent = promptService.applyVariables(template.userPrompt, variables);
 
-    const userMessage: UserMessage = {
-      content: userMessageContent,
-      timestamp: new Date(),
-    };
+      const userMessage: UserMessage = {
+        content: userMessageContent,
+        timestamp: new Date(),
+        userId
+      };
 
-    // Send message to OpenAI
-    const openAIResponse = await openAIService.sendMessage(systemSpec, userMessage);
+      openAIResponse = await openAIService.sendMessage(systemSpec, userMessage);
+    }
 
     res.json({
       success: true,
