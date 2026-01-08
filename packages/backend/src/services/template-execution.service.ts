@@ -205,7 +205,7 @@ export class TemplateExecutionService {
    * Start batch execution in the background
    */
   private async startBatchExecution(jobId: string, template: PromptTemplate): Promise<void> {
-    const job = {
+    const job: any = {
       jobId,
       templateId: template.id,
       templateName: template.name,
