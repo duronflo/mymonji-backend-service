@@ -49,10 +49,18 @@ export class TemplateExecutionService {
 
     // Build the user prompt with Firebase data if configured
     let userPrompt = this.promptService.applyVariables(template.userPrompt, variables);
+    let firebaseData: any = null;
 
     // If Firebase data is enabled, fetch and append it to the prompt
     if (template.firebaseData?.enabled) {
-      const firebaseData = await this.fetchFirebaseData(userId, template.firebaseData);
+      firebaseData = await this.fetchFirebaseData(userId, template.firebaseData);
+      
+      // Check if no expenses were found - skip OpenAI call to save costs
+      if (firebaseData.expenses && firebaseData.expenses.length === 0) {
+        console.log(`⚠️ No expenses found for user ${userId} - skipping OpenAI call to save costs`);
+        throw new Error('No expense data found for the specified period. OpenAI call skipped to save costs.');
+      }
+      
       userPrompt = this.enrichPromptWithFirebaseData(userPrompt, firebaseData);
     }
 
