@@ -66,6 +66,21 @@ export class TemplateExecutionService {
       }
     );
 
+    // Save the response to Firebase at /users2/{userId}/prompts
+    try {
+      await this.firebaseService.savePromptResponse(
+        userId,
+        template.id,
+        template.name,
+        userPrompt,
+        response.content
+      );
+      console.log(`💾 Saved prompt response to Firebase for user ${userId}`);
+    } catch (error) {
+      console.error(`Failed to save prompt response to Firebase for user ${userId}:`, error);
+      // Don't throw - we still want to return the response even if saving fails
+    }
+
     return response;
   }
 

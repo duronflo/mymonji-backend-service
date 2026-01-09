@@ -197,6 +197,56 @@ return userDoc.data();
 }
   }
 
+  /**
+   * Save prompt response to Firebase
+   * Saves the OpenAI response to /users2/{uid}/prompts collection
+   * @param uid - User ID
+   * @param templateId - Template ID used
+   * @param templateName - Template name
+   * @param prompt - The prompt that was sent to OpenAI
+   * @param response - The OpenAI response
+   * @returns Document ID of saved response
+   */
+  async savePromptResponse(
+    uid: string,
+    templateId: string,
+    templateName: string,
+    prompt: string,
+    response: string
+  ): Promise<string> {
+    this.initializeFirebase();
+
+    if (!this.db) {
+      throw new Error('Firestore is not initialized');
+    }
+
+    try {
+      const promptData = {
+        templateId,
+        templateName,
+        prompt,
+        response,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: new Date().toISOString()
+      };
+
+      // Save to /users2/{uid}/prompts collection
+      const docRef = await this.db
+        .collection('users2')
+        .doc(uid)
+        .collection('prompts')
+        .add(promptData);
+
+      console.log(`✅ Saved prompt response for user ${uid} to /users2/${uid}/prompts/${docRef.id}`);
+      
+      return docRef.id;
+    } catch (error) {
+      const errorMessage = `Error saving prompt response for user ${uid}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+  }
+
 /**
  * Check if Firebase is properly configured
  * @returns boolean indicating if Firebase is ready
