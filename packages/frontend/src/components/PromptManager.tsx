@@ -24,7 +24,16 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
     name: '',
     description: '',
     userPrompt: '',
-    category: ''
+    category: '',
+    firebaseData: {
+      enabled: false,
+      includeEmotions: true,
+      includeUserData: true
+    },
+    schedule: {
+      enabled: false,
+      runForAllUsers: true
+    }
   });
 
   const resetForm = () => {
@@ -32,7 +41,16 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
       name: '',
       description: '',
       userPrompt: '',
-      category: ''
+      category: '',
+      firebaseData: {
+        enabled: false,
+        includeEmotions: true,
+        includeUserData: true
+      },
+      schedule: {
+        enabled: false,
+        runForAllUsers: true
+      }
     });
     setIsCreating(false);
     setEditingId(null);
@@ -72,7 +90,16 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
       name: template.name,
       description: template.description,
       userPrompt: template.userPrompt,
-      category: template.category || ''
+      category: template.category || '',
+      firebaseData: template.firebaseData || {
+        enabled: false,
+        includeEmotions: true,
+        includeUserData: true
+      },
+      schedule: template.schedule || {
+        enabled: false,
+        runForAllUsers: true
+      }
     });
     setIsCreating(true);
   };
@@ -154,6 +181,145 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
             />
           </div>
 
+          {/* Firebase Data Configuration */}
+          <div className="form-section">
+            <h5>Firebase Data Configuration</h5>
+            <div className="form-group checkbox-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.firebaseData?.enabled || false}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    firebaseData: {
+                      ...formData.firebaseData,
+                      enabled: e.target.checked,
+                      includeEmotions: true,
+                      includeUserData: true
+                    }
+                  })}
+                />
+                <span>Fetch Firebase Data (expenses with emotions)</span>
+              </label>
+            </div>
+
+            {formData.firebaseData?.enabled && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="start-date">Start Date (Optional - ISO format: YYYY-MM-DD)</label>
+                  <input
+                    id="start-date"
+                    type="date"
+                    value={formData.firebaseData?.dateRange?.startDate || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      firebaseData: {
+                        ...formData.firebaseData,
+                        enabled: true,
+                        dateRange: {
+                          ...formData.firebaseData?.dateRange,
+                          type: 'custom',
+                          startDate: e.target.value
+                        }
+                      }
+                    })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="end-date">End Date (Optional - ISO format: YYYY-MM-DD)</label>
+                  <input
+                    id="end-date"
+                    type="date"
+                    value={formData.firebaseData?.dateRange?.endDate || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      firebaseData: {
+                        ...formData.firebaseData,
+                        enabled: true,
+                        dateRange: {
+                          ...formData.firebaseData?.dateRange,
+                          type: 'custom',
+                          endDate: e.target.value
+                        }
+                      }
+                    })}
+                  />
+                  <small>Leave dates empty to fetch all available data</small>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Scheduling Configuration */}
+          <div className="form-section">
+            <h5>Scheduling Configuration</h5>
+            <div className="form-group checkbox-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.schedule?.enabled || false}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    schedule: {
+                      ...formData.schedule,
+                      enabled: e.target.checked,
+                      runForAllUsers: true
+                    }
+                  })}
+                />
+                <span>Enable Scheduled Execution</span>
+              </label>
+            </div>
+
+            {formData.schedule?.enabled && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="schedule-type">Schedule Frequency</label>
+                  <select
+                    id="schedule-type"
+                    value={formData.schedule?.cronExpression || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      schedule: {
+                        ...formData.schedule,
+                        enabled: true,
+                        cronExpression: e.target.value,
+                        timezone: 'UTC'
+                      }
+                    })}
+                  >
+                    <option value="">Select frequency...</option>
+                    <option value="0 0 * * *">Daily (midnight)</option>
+                    <option value="0 0 * * 0">Weekly (Sunday midnight)</option>
+                    <option value="0 0 * * 1">Weekly (Monday midnight)</option>
+                    <option value="0 0 1 * *">Monthly (1st day midnight)</option>
+                    <option value="0 0 1 */3 *">Quarterly (1st day every 3 months)</option>
+                  </select>
+                  <small>Select a common schedule or leave empty to disable</small>
+                </div>
+
+                <div className="form-group checkbox-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.schedule?.runForAllUsers !== false}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        schedule: {
+                          ...formData.schedule,
+                          enabled: true,
+                          runForAllUsers: e.target.checked
+                        }
+                      })}
+                    />
+                    <span>Run for all users</span>
+                  </label>
+                </div>
+              </>
+            )}
+          </div>
+
           <div className="form-actions">
             <button type="submit" className="submit-btn">
               {editingId ? 'Update' : 'Create'}
@@ -210,9 +376,16 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
               <div className="template-config">
                 <strong>📊 Firebase Data:</strong>
                 <span className="config-badge">
+                  {template.firebaseData.dateRange?.type === 'custom' && template.firebaseData.dateRange.startDate && (
+                    <>From {template.firebaseData.dateRange.startDate}</>
+                  )}
+                  {template.firebaseData.dateRange?.type === 'custom' && template.firebaseData.dateRange.endDate && (
+                    <> to {template.firebaseData.dateRange.endDate}</>
+                  )}
                   {template.firebaseData.dateRange?.type === 'days' && `Last ${template.firebaseData.dateRange.value} days`}
                   {template.firebaseData.dateRange?.type === 'weeks' && `Last ${template.firebaseData.dateRange.value} weeks`}
                   {template.firebaseData.dateRange?.type === 'months' && `Last ${template.firebaseData.dateRange.value} months`}
+                  {!template.firebaseData.dateRange && 'All data'}
                   {template.firebaseData.includeEmotions && ' • With Emotions'}
                 </span>
               </div>
@@ -223,11 +396,35 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
               <div className="template-config">
                 <strong>⏰ Scheduled:</strong>
                 <span className="config-badge">
-                  {template.schedule.cronExpression}
+                  {template.schedule.cronExpression === '0 0 * * *' && 'Daily'}
+                  {template.schedule.cronExpression === '0 0 * * 0' && 'Weekly (Sunday)'}
+                  {template.schedule.cronExpression === '0 0 * * 1' && 'Weekly (Monday)'}
+                  {template.schedule.cronExpression === '0 0 1 * *' && 'Monthly'}
+                  {template.schedule.cronExpression === '0 0 1 */3 *' && 'Quarterly'}
+                  {template.schedule.cronExpression && !['0 0 * * *', '0 0 * * 0', '0 0 * * 1', '0 0 1 * *', '0 0 1 */3 *'].includes(template.schedule.cronExpression) && template.schedule.cronExpression}
                   {template.schedule.runForAllUsers && ' • All Users'}
                 </span>
               </div>
             )}
+
+            {/* API Batch Execution Call */}
+            <div className="template-config api-call">
+              <strong>🔗 Batch Execution API:</strong>
+              <code className="api-code">
+                POST /api/prompts/templates/{template.id}/execute-all
+              </code>
+              <button
+                type="button"
+                className="copy-btn"
+                onClick={() => {
+                  navigator.clipboard.writeText(`POST ${window.location.origin}/api/prompts/templates/${template.id}/execute-all`);
+                  alert('API endpoint copied to clipboard!');
+                }}
+                title="Copy API endpoint"
+              >
+                📋
+              </button>
+            </div>
 
             <div className="template-prompt">
               <strong>Prompt:</strong>
@@ -296,7 +493,8 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
         }
 
         .form-group input,
-        .form-group textarea {
+        .form-group textarea,
+        .form-group select {
           width: 100%;
           padding: 8px;
           border: 1px solid #ddd;
@@ -310,6 +508,44 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
           margin-top: 5px;
           color: #666;
           font-size: 12px;
+        }
+
+        .form-section {
+          margin-top: 25px;
+          margin-bottom: 20px;
+          padding: 15px;
+          background: #fff;
+          border: 1px solid #e0e0e0;
+          border-radius: 6px;
+        }
+
+        .form-section h5 {
+          margin-top: 0;
+          margin-bottom: 15px;
+          color: #333;
+          font-size: 16px;
+          border-bottom: 2px solid #2196F3;
+          padding-bottom: 8px;
+        }
+
+        .checkbox-group {
+          margin-bottom: 10px;
+        }
+
+        .checkbox-group label {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+          width: auto;
+          margin-right: 8px;
+          cursor: pointer;
+        }
+
+        .checkbox-group span {
+          font-weight: normal;
         }
 
         .form-actions {
@@ -435,6 +671,42 @@ export const PromptManager: React.FC<PromptManagerProps> = ({
         .template-config strong {
           display: inline-block;
           margin-right: 8px;
+        }
+
+        .template-config.api-call {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: #f0f8ff;
+          padding: 10px;
+          border-radius: 4px;
+          border: 1px solid #2196F3;
+        }
+
+        .api-code {
+          flex: 1;
+          background: #263238;
+          color: #4CAF50;
+          padding: 8px 12px;
+          border-radius: 4px;
+          font-family: 'Courier New', monospace;
+          font-size: 12px;
+          overflow-x: auto;
+          white-space: nowrap;
+        }
+
+        .copy-btn {
+          background: #2196F3;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 16px;
+        }
+
+        .copy-btn:hover {
+          background: #0b7dda;
         }
 
         .config-badge {

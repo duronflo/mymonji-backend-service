@@ -1,6 +1,7 @@
 import { HealthCheck } from './HealthCheck';
 import { UserRecommendations } from './UserRecommendations';
 import { BatchProcessing } from './BatchProcessing';
+import { UsersList } from './UsersList';
 
 export function FirebaseTestPanel() {
   return (
@@ -11,6 +12,10 @@ export function FirebaseTestPanel() {
       <div className="test-sections">
         <div className="test-section">
           <HealthCheck />
+        </div>
+        
+        <div className="test-section">
+          <UsersList />
         </div>
         
         <div className="test-section">

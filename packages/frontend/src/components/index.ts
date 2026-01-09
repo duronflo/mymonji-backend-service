@@ -7,3 +7,4 @@ export { UserRecommendations } from './UserRecommendations';
 export { BatchProcessing } from './BatchProcessing';
 export { FirebaseTestPanel } from './FirebaseTestPanel';
 export { PromptManager } from './PromptManager';
+export { UsersList } from './UsersList';
