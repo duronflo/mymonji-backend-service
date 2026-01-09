@@ -144,20 +144,22 @@ export class FirebaseService {
    * @param uid - User ID
    * @returns User data from Firestore
    */
-  async getUserData(uid: string): Promise < any > {
-  try {
-    this.initializeFirebase();
-    if(!this.db) throw new Error('Firestore not initialized');
+  async getUserData(uid: string): Promise<any> {
+    try {
+      this.initializeFirebase();
+      if (!this.db) throw new Error('Firestore not initialized');
 
-    const userDoc = await this.db.collection('users2').doc(uid).get();
+      const userDoc = await this.db.collection('users2').doc(uid).get();
 
-    console.log(userDoc)
+      if (!userDoc.exists) {
+        throw new Error(`User with UID ${uid} not found`);
+      }
 
-      if(!userDoc.exists) {
-  throw new Error(`User with UID ${uid} not found`);
-}
-
-return userDoc.data();
+      // Extract and return only the data, not the full QueryDocumentSnapshot
+      const userData = userDoc.data();
+      console.log(`✅ Fetched user data for ${uid}:`, JSON.stringify(userData, null, 2));
+      
+      return userData;
     } catch (error) {
       const errorMessage = `Error fetching user data for UID ${uid}: ${error instanceof Error ? error.message : String(error)}`;
       console.error(errorMessage);

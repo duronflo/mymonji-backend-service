@@ -1,0 +1,24 @@
+# Build output
+dist/
+build/
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dynamic template files (keep default templates only)
+templates/prompt-*.json
