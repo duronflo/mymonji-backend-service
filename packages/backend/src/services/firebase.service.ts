@@ -76,17 +76,25 @@ export class FirebaseService {
       this.initializeFirebase();
       if (!this.db) throw new Error('Firestore not initialized');
 
+      console.log('🔍 [DEBUG] Fetching expenses from Firebase:');
+      console.log(`   - User ID: ${uid}`);
+      console.log(`   - Start Date: ${startDate || 'None (all data)'}`);
+      console.log(`   - End Date: ${endDate || 'None (all data)'}`);
+      console.log(`   - Collection Path: users2/${uid}/expenses`);
+
       // Build the query with optional date filtering
       let query: admin.firestore.Query = this.db.collection('users2').doc(uid).collection('expenses');
 
       // Apply date filtering if provided
       if (startDate) {
         const startTimestamp = admin.firestore.Timestamp.fromDate(new Date(startDate + 'T00:00:00.000Z'));
+        console.log(`   - Start Timestamp: ${startTimestamp.toDate().toISOString()}`);
         query = query.where('date', '>=', startTimestamp);
       }
 
       if (endDate) {
         const endTimestamp = admin.firestore.Timestamp.fromDate(new Date(endDate + 'T23:59:59.999Z'));
+        console.log(`   - End Timestamp: ${endTimestamp.toDate().toISOString()}`);
         query = query.where('date', '<=', endTimestamp);
       }
 
@@ -94,6 +102,8 @@ export class FirebaseService {
       query = query.orderBy('date', 'desc');
 
       const expensesSnapshot = await query.get();
+      console.log(`   - Documents found: ${expensesSnapshot.size}`);
+      
       const expenses: Array<{
         amount: number;
         category: string,
@@ -103,8 +113,18 @@ export class FirebaseService {
         name: string
       }> = [];
 
-      expensesSnapshot.forEach(doc => {
+      let index = 0;
+      expensesSnapshot.forEach((doc: admin.firestore.QueryDocumentSnapshot) => {
+        index++;
         const data = doc.data();
+        console.log(`   - Document ${index}:`, {
+          id: doc.id,
+          amount: data.amount,
+          category: data.category,
+          date: data.date?.toDate?.() || data.date,
+          emotion: data.emotion,
+          name: data.name
+        });
         expenses.push({
           amount: data.amount,
           category: data.category,
@@ -119,7 +139,9 @@ export class FirebaseService {
       // This is a normal situation for new users or specific date ranges
       if (expenses.length === 0) {
         const dateInfo = startDate || endDate ? ` between ${startDate || 'start'} and ${endDate || 'end'}` : '';
-        console.log(`No expenses found for user with UID ${uid}${dateInfo} - returning empty array`);
+        console.log(`⚠️ [DEBUG] No expenses found for user with UID ${uid}${dateInfo} - returning empty array`);
+      } else {
+        console.log(`✅ [DEBUG] Successfully fetched ${expenses.length} expense(s) for user ${uid}`);
       }
 
       return expenses;

@@ -53,7 +53,22 @@ export class TemplateExecutionService {
 
     // If Firebase data is enabled, fetch and append it to the prompt
     if (template.firebaseData?.enabled) {
+      console.log(`🔍 [DEBUG] Firebase data is enabled for template "${template.name}"`);
+      console.log(`   - Date Range Type: ${template.firebaseData.dateRange?.type || 'none'}`);
+      console.log(`   - Date Range Value: ${template.firebaseData.dateRange?.value || 'none'}`);
+      console.log(`   - Custom Start Date: ${template.firebaseData.dateRange?.startDate || 'none'}`);
+      console.log(`   - Custom End Date: ${template.firebaseData.dateRange?.endDate || 'none'}`);
+      
       firebaseData = await this.fetchFirebaseData(userId, template.firebaseData);
+      
+      console.log(`🔍 [DEBUG] Firebase data fetched:`, {
+        hasUserData: !!firebaseData.userData,
+        expenseCount: firebaseData.expenses?.length || 0
+      });
+      
+      if (firebaseData.expenses && firebaseData.expenses.length > 0) {
+        console.log(`   - Sample expense data (first):`, firebaseData.expenses[0]);
+      }
       
       // Check if no expenses were found - skip OpenAI call to save costs
       if (firebaseData.expenses && firebaseData.expenses.length === 0) {
@@ -62,6 +77,7 @@ export class TemplateExecutionService {
       }
       
       userPrompt = this.enrichPromptWithFirebaseData(userPrompt, firebaseData);
+      console.log(`✅ [DEBUG] Prompt enriched with Firebase data`);
     }
 
     // Send to OpenAI
