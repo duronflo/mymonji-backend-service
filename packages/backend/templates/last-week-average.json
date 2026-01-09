@@ -1,0 +1,18 @@
+{
+  "id": "last-week-average",
+  "name": "Last Week Average",
+  "description": "Analyze average spending from the last 7 days with emotion insights",
+  "userPrompt": "Based on my expenses from the last 7 days, provide an analysis of my average spending and the emotions I felt. Identify patterns between spending amounts and my emotional state.",
+  "category": "Statistics",
+  "firebaseData": {
+    "enabled": true,
+    "dateRange": {
+      "type": "days",
+      "value": 7
+    },
+    "includeEmotions": true,
+    "includeUserData": true
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}

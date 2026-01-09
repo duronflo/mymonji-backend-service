@@ -1,0 +1,9 @@
+{
+  "id": "greeting",
+  "name": "Greeting",
+  "description": "A simple greeting message",
+  "userPrompt": "Hello! How can you help me today?",
+  "category": "General",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}
