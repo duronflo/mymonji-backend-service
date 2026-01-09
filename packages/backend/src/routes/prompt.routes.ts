@@ -136,7 +136,7 @@ router.get('/templates/:id', (req: Request, res: Response<ApiResponse<PromptTemp
     res.json({
       success: true,
       data: template,
-      message: 'Prompt template retrieved successfully'
+      message: 'Prompt template retrieved successfully!!!!'
     });
   } catch (error) {
     console.error('Error getting template:', error);
@@ -287,6 +287,32 @@ router.get('/executions/:jobId', async (req: Request, res: Response<ApiResponse<
     res.status(statusCode).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get execution job status'
+    });
+  }
+});
+
+/**
+ * POST /api/prompts/templates/:id/execute/:userId
+ * Execute a template for a single user
+ */
+router.post('/templates/:id/execute/:userId', async (req: Request, res: Response<ApiResponse<any>>) => {
+  try {
+    const { id, userId } = req.params;
+    const { variables } = req.body || {};
+
+    const response = await templateExecutionService.executeTemplateForUser(id, userId, variables);
+
+    res.json({
+      success: true,
+      data: response,
+      message: 'Template executed successfully for user'
+    });
+  } catch (error) {
+    console.error('Error executing template for user:', error);
+    const statusCode = error instanceof Error && error.message.includes('not found') ? 404 : 500;
+    res.status(statusCode).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to execute template for user'
     });
   }
 });

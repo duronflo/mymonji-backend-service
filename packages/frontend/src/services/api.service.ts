@@ -145,4 +145,15 @@ export class ApiService {
       body: JSON.stringify(request),
     });
   }
+
+  static async executeTemplateForUser(
+    templateId: string,
+    userId: string,
+    variables?: Record<string, string>
+  ): Promise<ApiResponse<OpenAIResponse>> {
+    return this.makeRequest<OpenAIResponse>(`/api/prompts/templates/${templateId}/execute/${encodeURIComponent(userId)}`, {
+      method: 'POST',
+      body: JSON.stringify({ variables }),
+    });
+  }
 }

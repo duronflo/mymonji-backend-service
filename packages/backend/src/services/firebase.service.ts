@@ -199,7 +199,7 @@ return userDoc.data();
 
   /**
    * Save prompt response to Firebase
-   * Saves the OpenAI response to /users2/{uid}/prompts collection
+   * Saves the OpenAI response to /users2/{uid}/recommendations collection
    * @param uid - User ID
    * @param templateId - Template ID used
    * @param templateName - Template name
@@ -234,11 +234,11 @@ return userDoc.data();
       const docRef = await this.db
         .collection('users2')
         .doc(uid)
-        .collection('prompts')
+        .collection('recommendations')
         .add(promptData);
 
-      console.log(`✅ Saved prompt response for user ${uid} to /users2/${uid}/prompts/${docRef.id}`);
-      
+      console.log(`✅ Saved prompt response for user ${uid} to /users2/${uid}/recommendations/${docRef.id}`);
+
       return docRef.id;
     } catch (error) {
       const errorMessage = `Error saving prompt response for user ${uid}: ${error instanceof Error ? error.message : String(error)}`;
