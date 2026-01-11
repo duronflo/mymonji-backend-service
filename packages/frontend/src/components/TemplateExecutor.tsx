@@ -15,6 +15,10 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionSteps, setExecutionSteps] = useState<ExecutionStep[]>([]);
 
+  // Debug: Log templates when component receives them
+  console.log('🔍 [TemplateExecutor] Received templates:', templates);
+  console.log('🔍 [TemplateExecutor] Templates count:', templates?.length || 0);
+
   const resetExecution = () => {
     setExecutionSteps([]);
   };
