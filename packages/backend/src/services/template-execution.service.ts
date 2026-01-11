@@ -90,7 +90,22 @@ export class TemplateExecutionService {
       // Check if no expenses were found - skip OpenAI call to save costs
       if (firebaseData.expenses && firebaseData.expenses.length === 0) {
         console.log(`⚠️ No expenses found for user ${userId} - skipping OpenAI call to save costs`);
-        throw new Error('No expense data found for the specified period. OpenAI call skipped to save costs.');
+        
+        // Return a user-friendly response instead of throwing an error
+        const noDataResponse: OpenAIResponse = {
+          content: `No expense data found for the specified period. Please check:\n\n1. Your date range settings - Currently looking for expenses between ${template.firebaseData?.dateRange?.startDate || 'the calculated start date'} and ${template.firebaseData?.dateRange?.endDate || 'today'}\n2. Make sure you have expenses recorded in Firebase for this period\n3. Verify the expenses are in the correct collection path: users2/${userId}/expenses\n\nNote: No OpenAI API call was made, saving costs.`,
+          tokensUsed: 0,
+        };
+        
+        if (includeDebugInfo) {
+          noDataResponse.debug = {
+            firebaseData,
+            promptSentToOpenAI: userPrompt,
+            systemSpecUsed: systemSpec,
+          };
+        }
+        
+        return noDataResponse;
       }
       
       userPrompt = this.enrichPromptWithFirebaseData(userPrompt, firebaseData);
