@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { OpenAIService } from '../services/openai.service';
 import { PromptService } from '../services/prompt.service';
-import { TemplateExecutionService } from '../services/template-execution.service';
+import { PromptExecutionService } from '../services/prompt-execution.service';
 import { 
   SystemSpecification, 
   UserMessage, 
@@ -13,7 +13,7 @@ import {
 
 const router = Router();
 const promptService = PromptService.getInstance();
-const templateExecutionService = TemplateExecutionService.getInstance();
+const promptExecutionService = PromptExecutionService.getInstance();
 
 // Initialize OpenAI service with error handling
 let openAIService: OpenAIService;
@@ -159,8 +159,8 @@ router.post('/send-with-template', async (req: Request, res: Response<ApiRespons
     let openAIResponse: OpenAIResponse;
 
     if (userId && template.firebaseData?.enabled) {
-      // Use template execution service for Firebase data integration
-      openAIResponse = await templateExecutionService.executeTemplateForUser(templateId, userId, variables, includeDebugInfo || false);
+      // Use prompt execution service for Firebase data integration
+      openAIResponse = await promptExecutionService.executePromptForUser(templateId, userId, variables, includeDebugInfo || false);
     } else {
       // Simple template execution without Firebase data
       const systemSpec = promptService.getSystemSpec();

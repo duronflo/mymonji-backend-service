@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PromptService } from '../services/prompt.service';
-import { TemplateExecutionService } from '../services/template-execution.service';
+import { PromptExecutionService } from '../services/prompt-execution.service';
 import { 
   ApiResponse, 
   PromptConfig, 
@@ -14,7 +14,7 @@ import {
 
 const router = Router();
 const promptService = PromptService.getInstance();
-const templateExecutionService = TemplateExecutionService.getInstance();
+const promptExecutionService = PromptExecutionService.getInstance();
 
 /**
  * GET /api/prompts/config
@@ -242,37 +242,37 @@ router.delete('/templates/:id', (req: Request, res: Response<ApiResponse<{ delet
 
 /**
  * POST /api/prompts/templates/:id/execute-all
- * Execute a template for all users (batch execution)
+ * Execute a prompt template for all users (batch execution)
  */
 router.post('/templates/:id/execute-all', async (req: Request, res: Response<ApiResponse<ExecuteTemplateForAllUsersResponse>>) => {
   try {
     const { id } = req.params;
 
-    const result = await templateExecutionService.executeTemplateForAllUsers(id);
+    const result = await promptExecutionService.executePromptForAllUsers(id);
 
     res.status(202).json({
       success: true,
       data: result,
-      message: 'Template execution started for all users'
+      message: 'Prompt template execution started for all users'
     });
   } catch (error) {
-    console.error('Error executing template for all users:', error);
+    console.error('Error executing prompt template for all users:', error);
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to execute template for all users'
+      error: error instanceof Error ? error.message : 'Failed to execute prompt template for all users'
     });
   }
 });
 
 /**
  * GET /api/prompts/executions/:jobId
- * Get status of a template execution job
+ * Get status of a prompt execution job
  */
 router.get('/executions/:jobId', async (req: Request, res: Response<ApiResponse<any>>) => {
   try {
     const { jobId } = req.params;
 
-    const status = templateExecutionService.getExecutionJobStatus(jobId);
+    const status = promptExecutionService.getExecutionJobStatus(jobId);
 
     res.json({
       success: true,
@@ -293,26 +293,26 @@ router.get('/executions/:jobId', async (req: Request, res: Response<ApiResponse<
 
 /**
  * POST /api/prompts/templates/:id/execute/:userId
- * Execute a template for a single user
+ * Execute a prompt template for a single user
  */
 router.post('/templates/:id/execute/:userId', async (req: Request, res: Response<ApiResponse<any>>) => {
   try {
     const { id, userId } = req.params;
     const { variables } = req.body || {};
 
-    const response = await templateExecutionService.executeTemplateForUser(id, userId, variables);
+    const response = await promptExecutionService.executePromptForUser(id, userId, variables);
 
     res.json({
       success: true,
       data: response,
-      message: 'Template executed successfully for user'
+      message: 'Prompt template executed successfully for user'
     });
   } catch (error) {
-    console.error('Error executing template for user:', error);
+    console.error('Error executing prompt template for user:', error);
     const statusCode = error instanceof Error && error.message.includes('not found') ? 404 : 500;
     res.status(statusCode).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to execute template for user'
+      error: error instanceof Error ? error.message : 'Failed to execute prompt template for user'
     });
   }
 });

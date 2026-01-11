@@ -11,8 +11,8 @@ import type {
 /**
  * Service for executing prompt templates with Firebase data integration
  */
-export class TemplateExecutionService {
-  private static instance: TemplateExecutionService;
+export class PromptExecutionService {
+  private static instance: PromptExecutionService;
   private promptService: PromptService;
   private firebaseService: FirebaseService;
   private openAIService: OpenAIService;
@@ -23,37 +23,37 @@ export class TemplateExecutionService {
     this.firebaseService = FirebaseService.getInstance();
     try {
       this.openAIService = new OpenAIService();
-      console.log('✅ OpenAI service initialized in TemplateExecutionService');
+      console.log('✅ OpenAI service initialized in PromptExecutionService');
     } catch (error) {
-      console.error('❌ Failed to initialize OpenAI service in TemplateExecutionService:', error);
+      console.error('❌ Failed to initialize OpenAI service in PromptExecutionService:', error);
       throw error;
     }
   }
 
-  public static getInstance(): TemplateExecutionService {
-    if (!TemplateExecutionService.instance) {
-      TemplateExecutionService.instance = new TemplateExecutionService();
+  public static getInstance(): PromptExecutionService {
+    if (!PromptExecutionService.instance) {
+      PromptExecutionService.instance = new PromptExecutionService();
     }
-    return TemplateExecutionService.instance;
+    return PromptExecutionService.instance;
   }
 
   /**
-   * Execute a template for a specific user with Firebase data
+   * Execute a prompt template for a specific user with Firebase data
    */
-  async executeTemplateForUser(
-    templateId: string,
+  async executePromptForUser(
+    promptId: string,
     userId: string,
     variables?: Record<string, string>,
     includeDebugInfo: boolean = false
   ): Promise<OpenAIResponse> {
-    console.log(`🚀 [DEBUG] Starting template execution for user ${userId}, template ${templateId}`);
+    console.log(`🚀 [DEBUG] Starting prompt execution for user ${userId}, prompt ${promptId}`);
     
-    const template = this.promptService.getTemplate(templateId);
+    const template = this.promptService.getTemplate(promptId);
     if (!template) {
-      throw new Error(`Template with ID ${templateId} not found`);
+      throw new Error(`Prompt template with ID ${promptId} not found`);
     }
 
-    console.log(`✅ [DEBUG] Template found: ${template.name}`);
+    console.log(`✅ [DEBUG] Prompt template found: ${template.name}`);
 
     // Get system specification
     const systemSpec = this.promptService.getSystemSpec();
@@ -65,7 +65,7 @@ export class TemplateExecutionService {
 
     // If Firebase data is enabled, fetch and append it to the prompt
     if (template.firebaseData?.enabled) {
-      console.log(`🔍 [DEBUG] Firebase data is enabled for template "${template.name}"`);
+      console.log(`🔍 [DEBUG] Firebase data is enabled for prompt template "${template.name}"`);
       console.log(`   - Date Range Type: ${template.firebaseData.dateRange?.type || 'none'}`);
       console.log(`   - Date Range Value: ${template.firebaseData.dateRange?.value || 'none'}`);
       console.log(`   - Custom Start Date: ${template.firebaseData.dateRange?.startDate || 'none'}`);
@@ -94,7 +94,12 @@ export class TemplateExecutionService {
         // Return a user-friendly response instead of throwing an error
         const noDataResponse: OpenAIResponse = {
           content: `No expense data found for the specified period. Please check:\n\n1. Your date range settings - Currently looking for expenses between ${template.firebaseData?.dateRange?.startDate || 'the calculated start date'} and ${template.firebaseData?.dateRange?.endDate || 'today'}\n2. Make sure you have expenses recorded in Firebase for this period\n3. Verify the expenses are in the correct collection path: users2/${userId}/expenses\n\nNote: No OpenAI API call was made, saving costs.`,
-          tokensUsed: 0,
+          timestamp: new Date(),
+          usage: {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0
+          }
         };
         
         if (includeDebugInfo) {
@@ -166,12 +171,12 @@ export class TemplateExecutionService {
   }
 
   /**
-   * Execute a template for all users (batch execution)
+   * Execute a prompt template for all users (batch execution)
    */
-  async executeTemplateForAllUsers(templateId: string): Promise<ExecuteTemplateForAllUsersResponse> {
-    const template = this.promptService.getTemplate(templateId);
+  async executePromptForAllUsers(promptId: string): Promise<ExecuteTemplateForAllUsersResponse> {
+    const template = this.promptService.getTemplate(promptId);
     if (!template) {
-      throw new Error(`Template with ID ${templateId} not found`);
+      throw new Error(`Prompt template with ID ${promptId} not found`);
     }
 
     const jobId = `exec-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
@@ -303,8 +308,8 @@ export class TemplateExecutionService {
   private async startBatchExecution(jobId: string, template: PromptTemplate): Promise<void> {
     const job: any = {
       jobId,
-      templateId: template.id,
-      templateName: template.name,
+      promptId: template.id,
+      promptName: template.name,
       status: 'running',
       startTime: new Date(),
       processedUsers: 0,
@@ -322,7 +327,7 @@ export class TemplateExecutionService {
 
         for (const user of users) {
           try {
-            await this.executeTemplateForUser(template.id, user.uid);
+            await this.executePromptForUser(template.id, user.uid);
             job.processedUsers++;
           } catch (error) {
             const errorMsg = `Error processing user ${user.uid}: ${error instanceof Error ? error.message : 'Unknown error'}`;
