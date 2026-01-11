@@ -9,15 +9,15 @@ interface ExecutionStep {
   error?: string;
 }
 
-export function TemplateExecutor({ templates }: { templates: PromptTemplate[] }) {
+export function PromptExecutor({ templates }: { templates: PromptTemplate[] }) {
   const [userId, setUserId] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionSteps, setExecutionSteps] = useState<ExecutionStep[]>([]);
 
   // Debug: Log templates when component receives them
-  console.log('🔍 [TemplateExecutor] Received templates:', templates);
-  console.log('🔍 [TemplateExecutor] Templates count:', templates?.length || 0);
+  console.log('🔍 [PromptExecutor] Received templates:', templates);
+  console.log('🔍 [PromptExecutor] Templates count:', templates?.length || 0);
 
   const resetExecution = () => {
     setExecutionSteps([]);
@@ -63,8 +63,8 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
         firebaseDataEnabled: selectedTemplate?.firebaseData?.enabled
       });
 
-      // Step 2: Execute Template with Backend (request debug info)
-      updateStep('Executing Template', 'loading');
+      // Step 2: Execute Prompt Template with Backend (request debug info)
+      updateStep('Executing Prompt Template', 'loading');
       const response = await ApiService.sendWithTemplate({
         templateId: selectedTemplateId,
         userId: userId,
@@ -76,8 +76,8 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
       console.log('🔍 [FRONTEND DEBUG] Debug info:', response.data?.debug);
 
       if (response.success && response.data) {
-        updateStep('Executing Template', 'success', {
-          message: 'Template executed successfully',
+        updateStep('Executing Prompt Template', 'success', {
+          message: 'Prompt template executed successfully',
           responseLength: response.data.content?.length || 0
         });
 
@@ -116,7 +116,7 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
           message: 'Response automatically saved to Firebase'
         });
       } else {
-        throw new Error(response.error || 'Failed to execute template');
+        throw new Error(response.error || 'Failed to execute prompt template');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -159,8 +159,8 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
   };
 
   return (
-    <div className="template-executor" style={{ padding: '20px' }}>
-      <h3>Template Executor</h3>
+    <div className="prompt-executor" style={{ padding: '20px' }}>
+      <h3>Prompt Executor</h3>
       <p>Execute a prompt template for a specific user and see all the steps</p>
       
       <div className="form-group" style={{ marginBottom: '15px' }}>
@@ -187,7 +187,7 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
 
       <div className="form-group" style={{ marginBottom: '15px' }}>
         <label htmlFor="templateSelect" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-          Template/Job (required):
+          Prompt Template (required):
         </label>
         <select
           id="templateSelect"
@@ -203,7 +203,7 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
           }}
           disabled={isExecuting}
         >
-          <option value="">-- Select a template --</option>
+          <option value="">-- Select a prompt template --</option>
           {templates.map(template => (
             <option key={template.id} value={template.id}>
               {template.name} {template.category ? `(${template.category})` : ''}
@@ -227,7 +227,7 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
           marginBottom: '20px'
         }}
       >
-        {isExecuting ? 'Executing...' : 'Execute Template'}
+        {isExecuting ? 'Executing...' : 'Execute Prompt'}
       </button>
 
       {executionSteps.length > 0 && (
@@ -280,6 +280,13 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
                       <div><strong>Name:</strong> {step.data.name}</div>
                       <div><strong>Description:</strong> {step.data.description}</div>
                       <div><strong>Firebase Data:</strong> {step.data.firebaseDataEnabled ? 'Enabled' : 'Disabled'}</div>
+                    </div>
+                  )}
+
+                  {step.step === 'Executing Prompt Template' && (
+                    <div style={{ fontSize: '14px' }}>
+                      <div>{step.data.message}</div>
+                      <div><strong>Response Length:</strong> {step.data.responseLength} characters</div>
                     </div>
                   )}
 
@@ -388,13 +395,6 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
                         </div>
                       </div>
                     </details>
-                  )}
-
-                  {step.step === 'Executing Template via API' && (
-                    <div style={{ fontSize: '14px' }}>
-                      <div>{step.data.message}</div>
-                      <div><strong>Response Length:</strong> {step.data.responseLength} characters</div>
-                    </div>
                   )}
 
                   {step.step === 'OpenAI Response Received' && (
