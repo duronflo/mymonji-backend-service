@@ -34,6 +34,15 @@ export interface OpenAIResponse {
     totalTokens: number;
   };
   model?: string;
+  // Debug information - included when includeDebugInfo is true
+  debug?: {
+    firebaseData?: {
+      userData?: any;
+      expenses?: any[];
+    };
+    promptSentToOpenAI?: string; // The exact prompt sent to OpenAI (with Firebase data)
+    systemSpecUsed?: any; // The system specification used
+  };
 }
 
 export interface ApiResponse<T> {
@@ -168,6 +177,7 @@ export interface ChatWithTemplateRequest {
   templateId: string;
   variables?: Record<string, string>;
   userId?: string; // User ID for Firebase data retrieval
+  includeDebugInfo?: boolean; // Include detailed debug information in response
 }
 
 export interface ExecuteTemplateForAllUsersRequest {

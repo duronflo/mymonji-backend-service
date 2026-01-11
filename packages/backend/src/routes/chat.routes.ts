@@ -137,7 +137,7 @@ router.post('/send-with-template', async (req: Request, res: Response<ApiRespons
       });
     }
 
-    const { templateId, variables, userId }: ChatWithTemplateRequest = req.body;
+    const { templateId, variables, userId, includeDebugInfo }: ChatWithTemplateRequest = req.body;
 
     // Validate input
     if (!templateId) {
@@ -160,7 +160,7 @@ router.post('/send-with-template', async (req: Request, res: Response<ApiRespons
 
     if (userId && template.firebaseData?.enabled) {
       // Use template execution service for Firebase data integration
-      openAIResponse = await templateExecutionService.executeTemplateForUser(templateId, userId, variables);
+      openAIResponse = await templateExecutionService.executeTemplateForUser(templateId, userId, variables, includeDebugInfo || false);
     } else {
       // Simple template execution without Firebase data
       const systemSpec = promptService.getSystemSpec();
@@ -173,6 +173,14 @@ router.post('/send-with-template', async (req: Request, res: Response<ApiRespons
       };
 
       openAIResponse = await openAIService.sendMessage(systemSpec, userMessage);
+      
+      // Add debug info if requested
+      if (includeDebugInfo) {
+        openAIResponse.debug = {
+          promptSentToOpenAI: userMessageContent,
+          systemSpecUsed: systemSpec
+        };
+      }
     }
 
     res.json({

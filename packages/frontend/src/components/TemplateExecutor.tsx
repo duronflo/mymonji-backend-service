@@ -70,11 +70,12 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
         });
       }
 
-      // Step 3: Execute Template with Backend
+      // Step 3: Execute Template with Backend (request debug info)
       updateStep('Executing Template via API', 'loading');
       const response = await ApiService.sendWithTemplate({
         templateId: selectedTemplateId,
-        userId: userId
+        userId: userId,
+        includeDebugInfo: true  // Request detailed debug information
       });
 
       if (response.success && response.data) {
@@ -82,6 +83,23 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
           message: 'Template executed successfully',
           responseLength: response.data.content?.length || 0
         });
+
+        // Step 2b: Show Firebase Data Fetched (if available in debug info)
+        if (response.data.debug?.firebaseData) {
+          updateStep('Firebase Data Fetched', 'success', {
+            userData: response.data.debug.firebaseData.userData,
+            expenseCount: response.data.debug.firebaseData.expenses?.length || 0,
+            expenses: response.data.debug.firebaseData.expenses || []
+          });
+        }
+
+        // Step 3b: Show Prompt Sent to OpenAI (if available in debug info)
+        if (response.data.debug?.promptSentToOpenAI) {
+          updateStep('Prompt Sent to OpenAI', 'success', {
+            prompt: response.data.debug.promptSentToOpenAI,
+            systemSpec: response.data.debug.systemSpecUsed
+          });
+        }
 
         // Step 4: OpenAI Response Received
         updateStep('OpenAI Response Received', 'success', {
@@ -271,6 +289,102 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
                         </div>
                       )}
                     </div>
+                  )}
+
+                  {step.step === 'Firebase Data Fetched' && (
+                    <details style={{ marginTop: '10px' }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
+                        📊 View Firebase Data ({step.data.expenseCount} expenses)
+                      </summary>
+                      <div style={{ 
+                        marginTop: '10px',
+                        padding: '15px',
+                        backgroundColor: '#fff8e1',
+                        border: '1px solid #ffc107',
+                        borderRadius: '4px',
+                        maxHeight: '400px',
+                        overflow: 'auto'
+                      }}>
+                        {step.data.userData && (
+                          <div style={{ marginBottom: '15px' }}>
+                            <strong style={{ color: '#f57c00' }}>User Data:</strong>
+                            <pre style={{ 
+                              margin: '5px 0 0 0',
+                              whiteSpace: 'pre-wrap',
+                              fontSize: '12px',
+                              fontFamily: 'monospace',
+                              backgroundColor: '#fff',
+                              padding: '10px',
+                              borderRadius: '4px'
+                            }}>
+                              {JSON.stringify(step.data.userData, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        <div>
+                          <strong style={{ color: '#f57c00' }}>Expenses ({step.data.expenseCount}):</strong>
+                          <pre style={{ 
+                            margin: '5px 0 0 0',
+                            whiteSpace: 'pre-wrap',
+                            fontSize: '12px',
+                            fontFamily: 'monospace',
+                            backgroundColor: '#fff',
+                            padding: '10px',
+                            borderRadius: '4px'
+                          }}>
+                            {JSON.stringify(step.data.expenses, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    </details>
+                  )}
+
+                  {step.step === 'Prompt Sent to OpenAI' && (
+                    <details style={{ marginTop: '10px' }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0066cc' }}>
+                        📤 View Complete Prompt Sent to OpenAI
+                      </summary>
+                      <div style={{ 
+                        marginTop: '10px',
+                        padding: '15px',
+                        backgroundColor: '#e3f2fd',
+                        border: '1px solid #2196f3',
+                        borderRadius: '4px',
+                        maxHeight: '400px',
+                        overflow: 'auto'
+                      }}>
+                        {step.data.systemSpec && (
+                          <div style={{ marginBottom: '15px' }}>
+                            <strong style={{ color: '#1976d2' }}>System Specification:</strong>
+                            <pre style={{ 
+                              margin: '5px 0 0 0',
+                              whiteSpace: 'pre-wrap',
+                              fontSize: '12px',
+                              fontFamily: 'monospace',
+                              backgroundColor: '#fff',
+                              padding: '10px',
+                              borderRadius: '4px'
+                            }}>
+                              {JSON.stringify(step.data.systemSpec, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        <div>
+                          <strong style={{ color: '#1976d2' }}>User Prompt (with Firebase data):</strong>
+                          <pre style={{ 
+                            margin: '5px 0 0 0',
+                            whiteSpace: 'pre-wrap',
+                            fontSize: '12px',
+                            fontFamily: 'monospace',
+                            backgroundColor: '#fff',
+                            padding: '10px',
+                            borderRadius: '4px'
+                          }}>
+                            {step.data.prompt}
+                          </pre>
+                        </div>
+                      </div>
+                    </details>
                   )}
 
                   {step.step === 'Executing Template via API' && (

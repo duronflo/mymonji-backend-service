@@ -37,7 +37,8 @@ export class TemplateExecutionService {
   async executeTemplateForUser(
     templateId: string,
     userId: string,
-    variables?: Record<string, string>
+    variables?: Record<string, string>,
+    includeDebugInfo: boolean = false
   ): Promise<OpenAIResponse> {
     const template = this.promptService.getTemplate(templateId);
     if (!template) {
@@ -89,6 +90,19 @@ export class TemplateExecutionService {
         userId
       }
     );
+
+    // Add debug information if requested
+    if (includeDebugInfo) {
+      response.debug = {
+        firebaseData: firebaseData ? {
+          userData: firebaseData.userData || null,
+          expenses: firebaseData.expenses || []
+        } : undefined,
+        promptSentToOpenAI: userPrompt,
+        systemSpecUsed: systemSpec
+      };
+      console.log(`🔍 [DEBUG] Including debug information in response`);
+    }
 
     // Save the response to Firebase at /users2/{userId}/prompts
     try {
