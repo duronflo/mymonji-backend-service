@@ -21,7 +21,13 @@ export class TemplateExecutionService {
   private constructor() {
     this.promptService = PromptService.getInstance();
     this.firebaseService = FirebaseService.getInstance();
-    this.openAIService = new OpenAIService();
+    try {
+      this.openAIService = new OpenAIService();
+      console.log('✅ OpenAI service initialized in TemplateExecutionService');
+    } catch (error) {
+      console.error('❌ Failed to initialize OpenAI service in TemplateExecutionService:', error);
+      throw error;
+    }
   }
 
   public static getInstance(): TemplateExecutionService {
@@ -40,13 +46,18 @@ export class TemplateExecutionService {
     variables?: Record<string, string>,
     includeDebugInfo: boolean = false
   ): Promise<OpenAIResponse> {
+    console.log(`🚀 [DEBUG] Starting template execution for user ${userId}, template ${templateId}`);
+    
     const template = this.promptService.getTemplate(templateId);
     if (!template) {
       throw new Error(`Template with ID ${templateId} not found`);
     }
 
+    console.log(`✅ [DEBUG] Template found: ${template.name}`);
+
     // Get system specification
     const systemSpec = this.promptService.getSystemSpec();
+    console.log(`✅ [DEBUG] System spec loaded`);
 
     // Build the user prompt with Firebase data if configured
     let userPrompt = this.promptService.applyVariables(template.userPrompt, variables);
@@ -60,7 +71,12 @@ export class TemplateExecutionService {
       console.log(`   - Custom Start Date: ${template.firebaseData.dateRange?.startDate || 'none'}`);
       console.log(`   - Custom End Date: ${template.firebaseData.dateRange?.endDate || 'none'}`);
       
-      firebaseData = await this.fetchFirebaseData(userId, template.firebaseData);
+      try {
+        firebaseData = await this.fetchFirebaseData(userId, template.firebaseData);
+      } catch (error) {
+        console.error(`❌ [ERROR] Failed to fetch Firebase data:`, error);
+        throw new Error(`Failed to fetch Firebase data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
       
       console.log(`🔍 [DEBUG] Firebase data fetched:`, {
         hasUserData: !!firebaseData.userData,
