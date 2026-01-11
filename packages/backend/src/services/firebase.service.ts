@@ -76,24 +76,36 @@ export class FirebaseService {
       this.initializeFirebase();
       if (!this.db) throw new Error('Firestore not initialized');
 
+      console.log('🔍 [DEBUG] Fetching expenses from Firebase:');
+      console.log(`   - User ID: ${uid}`);
+      console.log(`   - Start Date: ${startDate || 'None (all data)'}`);
+      console.log(`   - End Date: ${endDate || 'None (all data)'}`);
+      console.log(`   - Collection Path: users2/${uid}/expenses`);
+
       // Build the query with optional date filtering
       let query: admin.firestore.Query = this.db.collection('users2').doc(uid).collection('expenses');
 
       // Apply date filtering if provided
+      // Note: Firebase expenses have 'timestamp' field (Firestore Timestamp) and 'date' field (string)
+      // We query on 'timestamp' for proper date range filtering
       if (startDate) {
         const startTimestamp = admin.firestore.Timestamp.fromDate(new Date(startDate + 'T00:00:00.000Z'));
-        query = query.where('date', '>=', startTimestamp);
+        console.log(`   - Start Timestamp: ${startTimestamp.toDate().toISOString()}`);
+        query = query.where('timestamp', '>=', startTimestamp);
       }
 
       if (endDate) {
         const endTimestamp = admin.firestore.Timestamp.fromDate(new Date(endDate + 'T23:59:59.999Z'));
-        query = query.where('date', '<=', endTimestamp);
+        console.log(`   - End Timestamp: ${endTimestamp.toDate().toISOString()}`);
+        query = query.where('timestamp', '<=', endTimestamp);
       }
 
-      // Order by date for consistent results
-      query = query.orderBy('date', 'desc');
+      // Order by timestamp for consistent results (timestamp is the Firestore Timestamp field)
+      query = query.orderBy('timestamp', 'desc');
 
       const expensesSnapshot = await query.get();
+      console.log(`   - Documents found: ${expensesSnapshot.size}`);
+      
       const expenses: Array<{
         amount: number;
         category: string,
@@ -103,8 +115,18 @@ export class FirebaseService {
         name: string
       }> = [];
 
-      expensesSnapshot.forEach(doc => {
+      let index = 0;
+      expensesSnapshot.forEach((doc: admin.firestore.QueryDocumentSnapshot) => {
+        index++;
         const data = doc.data();
+        console.log(`   - Document ${index}:`, {
+          id: doc.id,
+          amount: data.amount,
+          category: data.category,
+          date: data.date?.toDate?.() || data.date,
+          emotion: data.emotion,
+          name: data.name
+        });
         expenses.push({
           amount: data.amount,
           category: data.category,
@@ -119,7 +141,9 @@ export class FirebaseService {
       // This is a normal situation for new users or specific date ranges
       if (expenses.length === 0) {
         const dateInfo = startDate || endDate ? ` between ${startDate || 'start'} and ${endDate || 'end'}` : '';
-        console.log(`No expenses found for user with UID ${uid}${dateInfo} - returning empty array`);
+        console.log(`⚠️ [DEBUG] No expenses found for user with UID ${uid}${dateInfo} - returning empty array`);
+      } else {
+        console.log(`✅ [DEBUG] Successfully fetched ${expenses.length} expense(s) for user ${uid}`);
       }
 
       return expenses;
@@ -144,20 +168,22 @@ export class FirebaseService {
    * @param uid - User ID
    * @returns User data from Firestore
    */
-  async getUserData(uid: string): Promise < any > {
-  try {
-    this.initializeFirebase();
-    if(!this.db) throw new Error('Firestore not initialized');
+  async getUserData(uid: string): Promise<any> {
+    try {
+      this.initializeFirebase();
+      if (!this.db) throw new Error('Firestore not initialized');
 
-    const userDoc = await this.db.collection('users2').doc(uid).get();
+      const userDoc = await this.db.collection('users2').doc(uid).get();
 
-    console.log(userDoc)
+      if (!userDoc.exists) {
+        throw new Error(`User with UID ${uid} not found`);
+      }
 
-      if(!userDoc.exists) {
-  throw new Error(`User with UID ${uid} not found`);
-}
-
-return userDoc.data();
+      // Extract and return only the data, not the full QueryDocumentSnapshot
+      const userData = userDoc.data();
+      console.log(`✅ Fetched user data for ${uid}:`, JSON.stringify(userData, null, 2));
+      
+      return userData;
     } catch (error) {
       const errorMessage = `Error fetching user data for UID ${uid}: ${error instanceof Error ? error.message : String(error)}`;
       console.error(errorMessage);
@@ -195,6 +221,56 @@ return userDoc.data();
   console.error('Error fetching all users:', error);
   throw error;
 }
+  }
+
+  /**
+   * Save prompt response to Firebase
+   * Saves the OpenAI response to /users2/{uid}/recommendations collection
+   * @param uid - User ID
+   * @param templateId - Template ID used
+   * @param templateName - Template name
+   * @param prompt - The prompt that was sent to OpenAI
+   * @param response - The OpenAI response
+   * @returns Document ID of saved response
+   */
+  async savePromptResponse(
+    uid: string,
+    templateId: string,
+    templateName: string,
+    prompt: string,
+    response: string
+  ): Promise<string> {
+    this.initializeFirebase();
+
+    if (!this.db) {
+      throw new Error('Firestore is not initialized');
+    }
+
+    try {
+      const promptData = {
+        templateId,
+        templateName,
+        prompt,
+        response,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: new Date().toISOString()
+      };
+
+      // Save to /users2/{uid}/prompts collection
+      const docRef = await this.db
+        .collection('users2')
+        .doc(uid)
+        .collection('recommendations')
+        .add(promptData);
+
+      console.log(`✅ Saved prompt response for user ${uid} to /users2/${uid}/recommendations/${docRef.id}`);
+
+      return docRef.id;
+    } catch (error) {
+      const errorMessage = `Error saving prompt response for user ${uid}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
   }
 
 /**

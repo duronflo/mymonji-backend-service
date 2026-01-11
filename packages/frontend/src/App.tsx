@@ -1,12 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import './App.css';
-import { SystemPanel, MessageList, MessageInput, FirebaseTestPanel } from './components';
+import { SystemPanel, MessageList, MessageInput, FirebaseTestPanel, PromptManager, TemplateExecutor } from './components';
 import { ApiService } from './services/api.service';
-import type { SystemSpecification, ChatMessage, UserMessage } from './types/index';
+import type { 
+  SystemSpecification, 
+  ChatMessage, 
+  UserMessage, 
+  PromptTemplate,
+  CreatePromptTemplateRequest,
+  UpdatePromptTemplateRequest 
+} from './types/index';
 
 function App() {
   // State for tab management
-  const [activeTab, setActiveTab] = useState<'chat' | 'firebase'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'prompts' | 'executor' | 'firebase'>('chat');
 
   // State for system specification
   const [systemSpec, setSystemSpec] = useState<SystemSpecification>({
@@ -21,10 +28,31 @@ function App() {
     personality: 'Friendly, professional, and knowledgeable'
   });
 
+  // State for prompt templates
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
+
   // State for chat messages
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load prompt configuration on mount
+  useEffect(() => {
+    loadPromptConfig();
+  }, []);
+
+  const loadPromptConfig = async () => {
+    try {
+      const response = await ApiService.getPromptConfig();
+      if (response.success && response.data) {
+        setSystemSpec(response.data.systemSpec);
+        setTemplates(response.data.templates);
+      }
+    } catch (error) {
+      console.error('Error loading prompt config:', error);
+    }
+  };
 
   // Generate unique ID for messages
   const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -85,6 +113,90 @@ function App() {
     }
   }, [systemSpec, addMessage]);
 
+  // Handle sending with a template
+  const handleSendWithTemplate = useCallback(async (template: PromptTemplate) => {
+    setError(null);
+    setIsLoading(true);
+
+    // Add user message showing the template prompt
+    addMessage(template.userPrompt, 'user');
+
+    try {
+      // Send with template
+      const response = await ApiService.sendWithTemplate({
+        templateId: template.id
+      });
+
+      if (response.success && response.data) {
+        // Add AI response
+        addMessage(response.data.content, 'assistant');
+      } else {
+        throw new Error(response.error || 'Failed to get response from AI');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      setError(errorMessage);
+      addMessage(`Error: ${errorMessage}`, 'system');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addMessage]);
+
+  // Handle system spec update
+  const handleSystemSpecChange = useCallback(async (spec: SystemSpecification) => {
+    setSystemSpec(spec);
+    try {
+      await ApiService.updateSystemSpec(spec);
+    } catch (error) {
+      console.error('Error updating system spec:', error);
+    }
+  }, []);
+
+  // Template management handlers
+  const handleCreateTemplate = useCallback(async (request: CreatePromptTemplateRequest) => {
+    try {
+      const response = await ApiService.createPromptTemplate(request);
+      if (response.success && response.data) {
+        setTemplates(prev => [...prev, response.data!]);
+      }
+    } catch (error) {
+      console.error('Error creating template:', error);
+      throw error;
+    }
+  }, []);
+
+  const handleUpdateTemplate = useCallback(async (id: string, request: UpdatePromptTemplateRequest) => {
+    try {
+      const response = await ApiService.updatePromptTemplate(id, request);
+      if (response.success && response.data) {
+        setTemplates(prev => prev.map(t => t.id === id ? response.data! : t));
+      }
+    } catch (error) {
+      console.error('Error updating template:', error);
+      throw error;
+    }
+  }, []);
+
+  const handleDeleteTemplate = useCallback(async (id: string) => {
+    try {
+      const response = await ApiService.deletePromptTemplate(id);
+      if (response.success) {
+        setTemplates(prev => prev.filter(t => t.id !== id));
+        if (selectedTemplate?.id === id) {
+          setSelectedTemplate(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      throw error;
+    }
+  }, [selectedTemplate]);
+
+  const handleSelectTemplate = useCallback((template: PromptTemplate) => {
+    setSelectedTemplate(template);
+    handleSendWithTemplate(template);
+  }, [handleSendWithTemplate]);
+
   // Check if system configuration is complete
   const isSystemConfigComplete = systemSpec.role && systemSpec.background && systemSpec.personality;
 
@@ -92,7 +204,7 @@ function App() {
     <div className="chat-container">
       <header className="chat-header">
         <h1>MyMonji Backend Service</h1>
-        <p>Test the chat interface and Firebase endpoints</p>
+        <p>Test the chat interface, manage prompts, and test Firebase endpoints</p>
         
         <nav className="tab-nav">
           <button 
@@ -100,6 +212,18 @@ function App() {
             onClick={() => setActiveTab('chat')}
           >
             Chat Interface
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'prompts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('prompts')}
+          >
+            Prompt Manager
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'executor' ? 'active' : ''}`}
+            onClick={() => setActiveTab('executor')}
+          >
+            Template Executor
           </button>
           <button 
             className={`tab-btn ${activeTab === 'firebase' ? 'active' : ''}`}
@@ -115,7 +239,7 @@ function App() {
           <>
             <SystemPanel
               systemSpec={systemSpec}
-              onSystemSpecChange={setSystemSpec}
+              onSystemSpecChange={handleSystemSpecChange}
             />
             
             <div className="chat-panel">
@@ -137,6 +261,19 @@ function App() {
               />
             </div>
           </>
+        ) : activeTab === 'prompts' ? (
+          <PromptManager
+            templates={templates}
+            onCreateTemplate={handleCreateTemplate}
+            onUpdateTemplate={handleUpdateTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
+            onSelectTemplate={handleSelectTemplate}
+            selectedTemplateId={selectedTemplate?.id}
+          />
+        ) : activeTab === 'executor' ? (
+          <TemplateExecutor
+            templates={templates}
+          />
         ) : (
           <FirebaseTestPanel />
         )}

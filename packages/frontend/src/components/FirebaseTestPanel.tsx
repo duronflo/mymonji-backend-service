@@ -1,12 +1,11 @@
 import { HealthCheck } from './HealthCheck';
-import { UserRecommendations } from './UserRecommendations';
-import { BatchProcessing } from './BatchProcessing';
+import { UsersList } from './UsersList';
 
 export function FirebaseTestPanel() {
   return (
     <div className="firebase-test-panel">
       <h2>Firebase Endpoints Testing</h2>
-      <p>Test the new Firebase backend endpoints with AI-powered recommendations and batch processing.</p>
+      <p>Test Firebase backend endpoints and user management.</p>
       
       <div className="test-sections">
         <div className="test-section">
@@ -14,11 +13,7 @@ export function FirebaseTestPanel() {
         </div>
         
         <div className="test-section">
-          <UserRecommendations />
-        </div>
-        
-        <div className="test-section">
-          <BatchProcessing />
+          <UsersList />
         </div>
       </div>
     </div>

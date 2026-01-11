@@ -1,0 +1,24 @@
+{
+  "id": "monthly-summary",
+  "name": "Monthly Summary",
+  "description": "Comprehensive monthly expense summary with emotion analysis",
+  "userPrompt": "Please provide a detailed summary of my expenses for this month. Include total spending, categories, and analyze the emotions associated with my purchases to help me understand my spending habits.",
+  "category": "Statistics",
+  "firebaseData": {
+    "enabled": true,
+    "dateRange": {
+      "type": "months",
+      "value": 1
+    },
+    "includeEmotions": true,
+    "includeUserData": true
+  },
+  "schedule": {
+    "enabled": true,
+    "cronExpression": "0 0 1 * *",
+    "timezone": "UTC",
+    "runForAllUsers": true
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}

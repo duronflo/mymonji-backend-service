@@ -1,0 +1,24 @@
+{
+  "id": "weekly-emotion-insights",
+  "name": "Weekly Emotion Insights",
+  "description": "Weekly analysis of spending patterns and emotional well-being",
+  "userPrompt": "Analyze my spending from the past week and identify which expenses made me feel positive versus negative. Provide recommendations for maintaining financial well-being while prioritizing emotionally fulfilling purchases.",
+  "category": "Insights",
+  "firebaseData": {
+    "enabled": true,
+    "dateRange": {
+      "type": "weeks",
+      "value": 1
+    },
+    "includeEmotions": true,
+    "includeUserData": true
+  },
+  "schedule": {
+    "enabled": true,
+    "cronExpression": "0 0 * * 0",
+    "timezone": "UTC",
+    "runForAllUsers": true
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}

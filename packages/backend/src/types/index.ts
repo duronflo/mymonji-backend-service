@@ -11,7 +11,16 @@ export {
   UserRecommendationsResponse,
   BatchJobRequest,
   BatchJobResponse,
-  BatchJobStatusResponse
+  BatchJobStatusResponse,
+  PromptTemplate,
+  PromptConfig,
+  CreatePromptTemplateRequest,
+  UpdatePromptTemplateRequest,
+  ChatWithTemplateRequest,
+  FirebaseDataConfig,
+  ScheduleConfig,
+  ExecuteTemplateForAllUsersRequest,
+  ExecuteTemplateForAllUsersResponse
 } from '@mymonji/shared';
 
 // Import types for internal use

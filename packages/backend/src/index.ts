@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 import { chatRoutes } from './routes/chat.routes';
+import { promptRoutes } from './routes/prompt.routes';
 import { firebaseRoutes } from './routes/firebase.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
 import type { ApiResponse } from './types';
@@ -68,6 +69,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/chat', chatRoutes);
+app.use('/api/prompts', promptRoutes);
 app.use('/', firebaseRoutes); // Firebase routes at root level as specified
 
 // Error handling middleware
