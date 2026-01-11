@@ -86,20 +86,22 @@ export class FirebaseService {
       let query: admin.firestore.Query = this.db.collection('users2').doc(uid).collection('expenses');
 
       // Apply date filtering if provided
+      // Note: Firebase expenses have 'timestamp' field (Firestore Timestamp) and 'date' field (string)
+      // We query on 'timestamp' for proper date range filtering
       if (startDate) {
         const startTimestamp = admin.firestore.Timestamp.fromDate(new Date(startDate + 'T00:00:00.000Z'));
         console.log(`   - Start Timestamp: ${startTimestamp.toDate().toISOString()}`);
-        query = query.where('date', '>=', startTimestamp);
+        query = query.where('timestamp', '>=', startTimestamp);
       }
 
       if (endDate) {
         const endTimestamp = admin.firestore.Timestamp.fromDate(new Date(endDate + 'T23:59:59.999Z'));
         console.log(`   - End Timestamp: ${endTimestamp.toDate().toISOString()}`);
-        query = query.where('date', '<=', endTimestamp);
+        query = query.where('timestamp', '<=', endTimestamp);
       }
 
-      // Order by date for consistent results
-      query = query.orderBy('date', 'desc');
+      // Order by timestamp for consistent results (timestamp is the Firestore Timestamp field)
+      query = query.orderBy('timestamp', 'desc');
 
       const expensesSnapshot = await query.get();
       console.log(`   - Documents found: ${expensesSnapshot.size}`);
