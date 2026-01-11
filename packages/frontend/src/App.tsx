@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import './App.css';
-import { SystemPanel, MessageList, MessageInput, FirebaseTestPanel, PromptManager } from './components';
+import { SystemPanel, MessageList, MessageInput, FirebaseTestPanel, PromptManager, TemplateExecutor } from './components';
 import { ApiService } from './services/api.service';
 import type { 
   SystemSpecification, 
@@ -13,7 +13,7 @@ import type {
 
 function App() {
   // State for tab management
-  const [activeTab, setActiveTab] = useState<'chat' | 'prompts' | 'firebase'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'prompts' | 'executor' | 'firebase'>('chat');
 
   // State for system specification
   const [systemSpec, setSystemSpec] = useState<SystemSpecification>({
@@ -220,6 +220,12 @@ function App() {
             Prompt Manager
           </button>
           <button 
+            className={`tab-btn ${activeTab === 'executor' ? 'active' : ''}`}
+            onClick={() => setActiveTab('executor')}
+          >
+            Template Executor
+          </button>
+          <button 
             className={`tab-btn ${activeTab === 'firebase' ? 'active' : ''}`}
             onClick={() => setActiveTab('firebase')}
           >
@@ -263,6 +269,10 @@ function App() {
             onDeleteTemplate={handleDeleteTemplate}
             onSelectTemplate={handleSelectTemplate}
             selectedTemplateId={selectedTemplate?.id}
+          />
+        ) : activeTab === 'executor' ? (
+          <TemplateExecutor
+            templates={templates}
           />
         ) : (
           <FirebaseTestPanel />
