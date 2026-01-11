@@ -10,16 +10,72 @@ import {
 
 /**
  * Service for managing prompt templates and system configuration
- * Uses file-based storage with JSON files in the templates directory
+ * Uses file-based storage with JSON files in the prompts directory
  */
 export class PromptService {
   private static instance: PromptService;
   private systemSpec: SystemSpecification;
-  private templatesDir: string;
+  private promptsDir: string;
+  private userPromptsDir: string;
+  private systemPromptsDir: string;
 
   private constructor() {
-    // Initialize with default system specification
-    this.systemSpec = {
+    // Set prompts directory paths
+    this.promptsDir = path.join(__dirname, '../../prompts');
+    this.userPromptsDir = path.join(this.promptsDir, 'user');
+    this.systemPromptsDir = path.join(this.promptsDir, 'system');
+    
+    // Ensure prompts directories exist
+    this.ensurePromptsDirectory();
+    
+    // Load system specification from active system prompt
+    this.systemSpec = this.loadActiveSystemSpec();
+  }
+
+  /**
+   * Ensure the prompts directories exist
+   */
+  private ensurePromptsDirectory(): void {
+    if (!fs.existsSync(this.promptsDir)) {
+      fs.mkdirSync(this.promptsDir, { recursive: true });
+      console.log(`📁 Created prompts directory at ${this.promptsDir}`);
+    }
+    if (!fs.existsSync(this.userPromptsDir)) {
+      fs.mkdirSync(this.userPromptsDir, { recursive: true });
+      console.log(`📁 Created user prompts directory at ${this.userPromptsDir}`);
+    }
+    if (!fs.existsSync(this.systemPromptsDir)) {
+      fs.mkdirSync(this.systemPromptsDir, { recursive: true });
+      console.log(`📁 Created system prompts directory at ${this.systemPromptsDir}`);
+    }
+  }
+
+  /**
+   * Load the active system specification from file
+   */
+  private loadActiveSystemSpec(): SystemSpecification {
+    try {
+      const files = fs.readdirSync(this.systemPromptsDir);
+      
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(this.systemPromptsDir, file);
+          const fileContent = fs.readFileSync(filePath, 'utf-8');
+          const systemPrompt = JSON.parse(fileContent);
+          
+          if (systemPrompt.isActive && systemPrompt.systemSpec) {
+            console.log(`✅ Loaded active system prompt: ${systemPrompt.name}`);
+            return systemPrompt.systemSpec;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading system prompts:', error);
+    }
+    
+    // Return default if no active system prompt found
+    console.log('⚠️ No active system prompt found, using default');
+    return {
       role: 'Helpful AI Assistant',
       background: 'You are a knowledgeable and helpful AI assistant designed to provide accurate information and assistance to users.',
       rules: [
@@ -30,30 +86,14 @@ export class PromptService {
       ],
       personality: 'Friendly, professional, and knowledgeable'
     };
-
-    // Set templates directory path
-    this.templatesDir = path.join(__dirname, '../../templates');
-    
-    // Ensure templates directory exists
-    this.ensureTemplatesDirectory();
   }
 
   /**
-   * Ensure the templates directory exists
-   */
-  private ensureTemplatesDirectory(): void {
-    if (!fs.existsSync(this.templatesDir)) {
-      fs.mkdirSync(this.templatesDir, { recursive: true });
-      console.log(`📁 Created templates directory at ${this.templatesDir}`);
-    }
-  }
-
-  /**
-   * Load a template from file
+   * Load a user prompt template from file
    */
   private loadTemplateFromFile(filename: string): PromptTemplate | null {
     try {
-      const filePath = path.join(this.templatesDir, filename);
+      const filePath = path.join(this.userPromptsDir, filename);
       const fileContent = fs.readFileSync(filePath, 'utf-8');
       const template = JSON.parse(fileContent);
       
@@ -63,17 +103,17 @@ export class PromptService {
       
       return template as PromptTemplate;
     } catch (error) {
-      console.error(`Error loading template from ${filename}:`, error);
+      console.error(`Error loading user prompt template from ${filename}:`, error);
       return null;
     }
   }
 
   /**
-   * Save a template to file
+   * Save a user prompt template to file
    */
   private saveTemplateToFile(template: PromptTemplate): void {
     const filename = `${template.id}.json`;
-    const filePath = path.join(this.templatesDir, filename);
+    const filePath = path.join(this.userPromptsDir, filename);
     
     // Create a copy with dates as ISO strings for JSON serialization
     const templateToSave = {
@@ -83,19 +123,19 @@ export class PromptService {
     };
     
     fs.writeFileSync(filePath, JSON.stringify(templateToSave, null, 2), 'utf-8');
-    console.log(`💾 Saved template to ${filename}`);
+    console.log(`💾 Saved user prompt template to ${filename}`);
   }
 
   /**
-   * Delete a template file
+   * Delete a user prompt template file
    */
   private deleteTemplateFile(templateId: string): void {
     const filename = `${templateId}.json`;
-    const filePath = path.join(this.templatesDir, filename);
+    const filePath = path.join(this.userPromptsDir, filename);
     
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      console.log(`🗑️ Deleted template file ${filename}`);
+      console.log(`🗑️ Deleted user prompt template file ${filename}`);
     }
   }
 
@@ -114,21 +154,65 @@ export class PromptService {
   }
 
   /**
-   * Update the system specification
+   * Update the system specification and save to active system prompt file
    */
   public updateSystemSpec(spec: SystemSpecification): SystemSpecification {
     this.systemSpec = { ...spec };
+    
+    // Save to the active system prompt file
+    try {
+      const files = fs.readdirSync(this.systemPromptsDir);
+      let activeSystemPromptFile: string | null = null;
+      
+      // Find the active system prompt file
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(this.systemPromptsDir, file);
+          const fileContent = fs.readFileSync(filePath, 'utf-8');
+          const systemPrompt = JSON.parse(fileContent);
+          
+          if (systemPrompt.isActive) {
+            activeSystemPromptFile = file;
+            // Update the system spec in the file
+            systemPrompt.systemSpec = spec;
+            systemPrompt.updatedAt = new Date().toISOString();
+            fs.writeFileSync(filePath, JSON.stringify(systemPrompt, null, 2), 'utf-8');
+            console.log(`💾 Updated active system prompt: ${systemPrompt.name}`);
+            break;
+          }
+        }
+      }
+      
+      // If no active system prompt found, create a new default one
+      if (!activeSystemPromptFile) {
+        const defaultSystemPrompt = {
+          id: 'default',
+          name: 'Default System Prompt',
+          description: 'The default system prompt',
+          systemSpec: spec,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        const filePath = path.join(this.systemPromptsDir, 'default.json');
+        fs.writeFileSync(filePath, JSON.stringify(defaultSystemPrompt, null, 2), 'utf-8');
+        console.log('💾 Created new default system prompt');
+      }
+    } catch (error) {
+      console.error('Error updating system prompt:', error);
+    }
+    
     return this.getSystemSpec();
   }
 
   /**
-   * Get all prompt templates from files
+   * Get all user prompt templates from files
    */
   public getAllTemplates(): PromptTemplate[] {
     const templates: PromptTemplate[] = [];
     
     try {
-      const files = fs.readdirSync(this.templatesDir);
+      const files = fs.readdirSync(this.userPromptsDir);
       
       for (const file of files) {
         if (file.endsWith('.json')) {
@@ -139,14 +223,14 @@ export class PromptService {
         }
       }
     } catch (error) {
-      console.error('Error loading templates:', error);
+      console.error('Error loading user prompt templates:', error);
     }
     
     return templates;
   }
 
   /**
-   * Get a specific template by ID from file
+   * Get a specific user prompt template by ID from file
    */
   public getTemplate(id: string): PromptTemplate | undefined {
     const filename = `${id}.json`;
@@ -154,7 +238,7 @@ export class PromptService {
   }
 
   /**
-   * Create a new prompt template and save to file
+   * Create a new user prompt template and save to file
    */
   public createTemplate(request: CreatePromptTemplateRequest): PromptTemplate {
     const now = new Date();
@@ -178,7 +262,7 @@ export class PromptService {
   }
 
   /**
-   * Update an existing prompt template and save to file
+   * Update an existing user prompt template and save to file
    */
   public updateTemplate(id: string, request: UpdatePromptTemplateRequest): PromptTemplate | undefined {
     const existing = this.getTemplate(id);
@@ -203,7 +287,7 @@ export class PromptService {
   }
 
   /**
-   * Delete a prompt template file
+   * Delete a user prompt template file
    */
   public deleteTemplate(id: string): boolean {
     const existing = this.getTemplate(id);
@@ -226,14 +310,14 @@ export class PromptService {
   }
 
   /**
-   * Generate a unique ID for templates
+   * Generate a unique ID for user prompt templates
    */
   private generateId(): string {
     return `prompt-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**
-   * Apply variables to a prompt template
+   * Apply variables to a user prompt template
    */
   public applyVariables(template: string, variables?: Record<string, string>): string {
     if (!variables) {

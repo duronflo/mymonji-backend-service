@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import './App.css';
-import { SystemPanel, MessageList, MessageInput, FirebaseTestPanel, PromptManager, TemplateExecutor } from './components';
+import { SystemPanel, MessageList, MessageInput, FirebaseTestPanel, PromptManager, PromptExecutor } from './components';
 import { ApiService } from './services/api.service';
 import type { 
   SystemSpecification, 
@@ -211,19 +211,19 @@ function App() {
             className={`tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
             onClick={() => setActiveTab('chat')}
           >
-            Chat Interface
+            System Prompt
           </button>
           <button 
             className={`tab-btn ${activeTab === 'prompts' ? 'active' : ''}`}
             onClick={() => setActiveTab('prompts')}
           >
-            Prompt Manager
+            User Prompts
           </button>
           <button 
             className={`tab-btn ${activeTab === 'executor' ? 'active' : ''}`}
             onClick={() => setActiveTab('executor')}
           >
-            Template Executor
+            Prompt Executor
           </button>
           <button 
             className={`tab-btn ${activeTab === 'firebase' ? 'active' : ''}`}
@@ -258,6 +258,7 @@ function App() {
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading}
                 disabled={!isSystemConfigComplete}
+                placeholder="Test your system prompt here..."
               />
             </div>
           </>
@@ -271,7 +272,7 @@ function App() {
             selectedTemplateId={selectedTemplate?.id}
           />
         ) : activeTab === 'executor' ? (
-          <TemplateExecutor
+          <PromptExecutor
             templates={templates}
           />
         ) : (

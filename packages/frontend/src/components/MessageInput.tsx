@@ -4,12 +4,14 @@ interface MessageInputProps {
   onSendMessage: (content: string) => void;
   isLoading: boolean;
   disabled: boolean;
+  placeholder?: string;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   isLoading,
-  disabled
+  disabled,
+  placeholder: customPlaceholder
 }) => {
   const [message, setMessage] = useState('');
 
@@ -27,9 +29,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  const placeholder = disabled
+  const placeholder = customPlaceholder || (disabled
     ? 'Complete the system configuration to start chatting...'
-    : 'Type your message here... (Press Enter to send, Shift+Enter for new line)';
+    : 'Type your message here... (Press Enter to send, Shift+Enter for new line)');
 
   return (
     <div className="message-input-container">
