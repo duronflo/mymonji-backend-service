@@ -59,55 +59,54 @@ export function TemplateExecutor({ templates }: { templates: PromptTemplate[] })
         firebaseDataEnabled: selectedTemplate?.firebaseData?.enabled
       });
 
-      // Step 2: Fetch User Data from Firebase
-      if (selectedTemplate?.firebaseData?.enabled) {
-        updateStep('Fetching User Data from Firebase', 'loading');
-        // This is implicit - the backend will fetch it
-        await new Promise(resolve => setTimeout(resolve, 500));
-        updateStep('Fetching User Data from Firebase', 'success', {
-          message: 'User profile and expense data will be fetched by backend',
-          dateRange: selectedTemplate.firebaseData.dateRange
-        });
-      }
-
-      // Step 3: Execute Template with Backend (request debug info)
-      updateStep('Executing Template via API', 'loading');
+      // Step 2: Execute Template with Backend (request debug info)
+      updateStep('Executing Template', 'loading');
       const response = await ApiService.sendWithTemplate({
         templateId: selectedTemplateId,
         userId: userId,
         includeDebugInfo: true  // Request detailed debug information
       });
 
+      console.log('🔍 [FRONTEND DEBUG] API Response:', response);
+      console.log('🔍 [FRONTEND DEBUG] Response data:', response.data);
+      console.log('🔍 [FRONTEND DEBUG] Debug info:', response.data?.debug);
+
       if (response.success && response.data) {
-        updateStep('Executing Template via API', 'success', {
+        updateStep('Executing Template', 'success', {
           message: 'Template executed successfully',
           responseLength: response.data.content?.length || 0
         });
 
-        // Step 2b: Show Firebase Data Fetched (if available in debug info)
+        // Step 3: Show Firebase Data Fetched (if available in debug info)
         if (response.data.debug?.firebaseData) {
+          console.log('🔍 [FRONTEND DEBUG] Firebase data found, creating step');
           updateStep('Firebase Data Fetched', 'success', {
             userData: response.data.debug.firebaseData.userData,
             expenseCount: response.data.debug.firebaseData.expenses?.length || 0,
             expenses: response.data.debug.firebaseData.expenses || []
           });
+        } else {
+          console.log('⚠️ [FRONTEND DEBUG] No Firebase data in response');
         }
 
-        // Step 3b: Show Prompt Sent to OpenAI (if available in debug info)
+        // Step 4: Show Prompt Sent to OpenAI (if available in debug info)
         if (response.data.debug?.promptSentToOpenAI) {
+          console.log('🔍 [FRONTEND DEBUG] Prompt data found, creating step');
           updateStep('Prompt Sent to OpenAI', 'success', {
             prompt: response.data.debug.promptSentToOpenAI,
             systemSpec: response.data.debug.systemSpecUsed
           });
+        } else {
+          console.log('⚠️ [FRONTEND DEBUG] No prompt data in response');
         }
 
-        // Step 4: OpenAI Response Received
+        // Step 5: OpenAI Response Received
         updateStep('OpenAI Response Received', 'success', {
           content: response.data.content,
           usage: response.data.usage
         });
 
-        // Step 5: Response Saved to Firebase
+        // Step 6: Response Saved to Firebase
         updateStep('Response Saved to Firebase', 'success', {
           path: `/users2/${userId}/prompts`,
           message: 'Response automatically saved to Firebase'

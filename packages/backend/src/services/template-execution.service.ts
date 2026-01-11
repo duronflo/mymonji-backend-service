@@ -93,6 +93,11 @@ export class TemplateExecutionService {
 
     // Add debug information if requested
     if (includeDebugInfo) {
+      console.log(`🔍 [BACKEND DEBUG] includeDebugInfo is true, adding debug data`);
+      console.log(`🔍 [BACKEND DEBUG] firebaseData exists:`, !!firebaseData);
+      console.log(`🔍 [BACKEND DEBUG] firebaseData.userData:`, firebaseData?.userData);
+      console.log(`🔍 [BACKEND DEBUG] firebaseData.expenses count:`, firebaseData?.expenses?.length || 0);
+      
       response.debug = {
         firebaseData: firebaseData ? {
           userData: firebaseData.userData || null,
@@ -101,7 +106,14 @@ export class TemplateExecutionService {
         promptSentToOpenAI: userPrompt,
         systemSpecUsed: systemSpec
       };
-      console.log(`🔍 [DEBUG] Including debug information in response`);
+      console.log(`🔍 [BACKEND DEBUG] Debug object created:`, {
+        hasFirebaseData: !!response.debug.firebaseData,
+        hasPrompt: !!response.debug.promptSentToOpenAI,
+        hasSystemSpec: !!response.debug.systemSpecUsed
+      });
+      console.log(`✅ [DEBUG] Including debug information in response`);
+    } else {
+      console.log(`⚠️ [BACKEND DEBUG] includeDebugInfo is false, skipping debug data`);
     }
 
     // Save the response to Firebase at /users2/{userId}/prompts
